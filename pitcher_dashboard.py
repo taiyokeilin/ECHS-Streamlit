@@ -368,33 +368,97 @@ else:
         st.error(f"Pitcher '{pitcher}' not found.")
         st.stop()
 
-    st.markdown(f"# ⚾ {pitcher}")
-
-    # ── View toggle ───────────────────────────────────────────────────────────
-    if "pitcher_view" not in st.session_state:
-        st.session_state.pitcher_view = "by_game"
-
-    col_btn1, col_btn2, col_btn3, _ = st.columns([1, 1.5, 1, 6.5])
-    with col_btn1:
-        if st.button("By Game", type="primary" if st.session_state.pitcher_view == "by_game" else "secondary"):
-            st.session_state.pitcher_view = "by_game"
-            st.rerun()
-    with col_btn2:
-        if st.button("By Pitch Type", type="primary" if st.session_state.pitcher_view == "by_pitch_type" else "secondary"):
-            st.session_state.pitcher_view = "by_pitch_type"
-            st.rerun()
-    with col_btn3:
-        if st.button("Graph", type="primary" if st.session_state.pitcher_view == "graph" else "secondary"):
-            st.session_state.pitcher_view = "graph"
-            st.rerun()
-
-    view = st.session_state.pitcher_view
-
     # ── Data for this pitcher ─────────────────────────────────────────────────
     pitcher_df = df_all[df_all["pitcher"] == pitcher].sort_values("game_date").reset_index(drop=True)
     pitcher_df = add_rates(pitcher_df)
     totals = pitcher_df[sum_cols].sum()
-    summary_cards(totals)
+
+    # ── Header row: title + radar chart ──────────────────────────────────────
+    title_col, radar_col = st.columns([3, 2])
+
+    with title_col:
+        st.markdown(f"# ⚾ {pitcher}")
+
+        # View toggle
+        if "pitcher_view" not in st.session_state:
+            st.session_state.pitcher_view = "by_game"
+
+        col_btn1, col_btn2, col_btn3, _ = st.columns([1, 1.4, 1, 5])
+        with col_btn1:
+            if st.button("By Game", type="primary" if st.session_state.pitcher_view == "by_game" else "secondary"):
+                st.session_state.pitcher_view = "by_game"
+                st.rerun()
+        with col_btn2:
+            if st.button("By Pitch Type", type="primary" if st.session_state.pitcher_view == "by_pitch_type" else "secondary"):
+                st.session_state.pitcher_view = "by_pitch_type"
+                st.rerun()
+        with col_btn3:
+            if st.button("Graph", type="primary" if st.session_state.pitcher_view == "graph" else "secondary"):
+                st.session_state.pitcher_view = "graph"
+                st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        summary_cards(totals)
+
+    with radar_col:
+        # Radar chart — normalize each metric to 0-100 scale based on reasonable max
+        radar_metrics = {
+            "0-0 Win%":      ("oh_oh_win%",    100),
+            "1-1 Win%":      ("one_one_win%",   100),
+            "All Lev. Win%": ("all_lev_win%",   100),
+            "Eff. PA%":      ("efficient_pa%",  100),
+            "2K CSW%":       ("2k_csw%",         70),
+        }
+
+        season_rates = add_rates(pd.DataFrame([totals])).iloc[0]
+
+        labels = list(radar_metrics.keys())
+        values = []
+        for label, (raw, max_val) in radar_metrics.items():
+            v = season_rates.get(raw, 0)
+            if pd.isna(v):
+                v = 0
+            values.append(round(min(float(v) / max_val * 100, 100), 1))
+
+        # Close the polygon
+        labels_closed = labels + [labels[0]]
+        values_closed = values + [values[0]]
+
+        radar_fig = go.Figure()
+        radar_fig.add_trace(go.Scatterpolar(
+            r=values_closed,
+            theta=labels_closed,
+            fill="toself",
+            fillcolor="rgba(88, 166, 255, 0.15)",
+            line=dict(color="#58a6ff", width=2),
+            marker=dict(color="#58a6ff", size=6),
+            hovertemplate="%{theta}<br>%{r:.0f}/100<extra></extra>",
+        ))
+        radar_fig.update_layout(
+            paper_bgcolor="#0d1117",
+            plot_bgcolor="#0d1117",
+            polar=dict(
+                bgcolor="#161b22",
+                radialaxis=dict(
+                    visible=True,
+                    range=[0, 100],
+                    showticklabels=False,
+                    gridcolor="#30363d",
+                    linecolor="#30363d",
+                ),
+                angularaxis=dict(
+                    tickfont=dict(family="Barlow Condensed, sans-serif", size=13, color="#e6edf3"),
+                    linecolor="#30363d",
+                    gridcolor="#30363d",
+                ),
+            ),
+            margin=dict(l=40, r=40, t=40, b=40),
+            height=300,
+            showlegend=False,
+        )
+        st.plotly_chart(radar_fig, use_container_width=True)
+
+    view = st.session_state.pitcher_view
 
     # ── Columns through 2K CSW% only (for both views) ────────────────────────
     pitch_display_cols = {
@@ -433,13 +497,12 @@ else:
 
         game_cols = {"game_date": "Date", "opponent": "Opponent", **{k: v for k, v in game_display_cols.items() if k not in ("game_date", "opponent")}}
         game_table = pitcher_df[list(game_cols.keys())].rename(columns=game_cols).copy()
-        totals_row = build_totals_row(pitcher_df, "Date", "SEASON", {"opponent": "Opponent", **pitch_display_cols})
-        # blank opponent in totals
+        totals_row = build_totals_row(pitcher_df, "Date", "SEASON", {"opponent": "Opponent", **{k: v for k, v in game_display_cols.items() if k not in ("game_date", "opponent")}})
         totals_row["Opponent"] = ""
         full_table = pd.concat([game_table, totals_row], ignore_index=True)
         st.markdown(build_html_table(full_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
 
-    # ── BY PITCH ──────────────────────────────────────────────────────────────
+    # ── BY PITCH TYPE ─────────────────────────────────────────────────────────
     elif view == "by_pitch_type":
         st.markdown("<div class='section-header'>Season Totals by Pitch Type</div>", unsafe_allow_html=True)
 
@@ -493,7 +556,6 @@ else:
             "Efficient PA%": "#bc8cff",
         }
 
-        # Metric selector
         selected_metrics = st.multiselect(
             "Select metrics to display",
             options=list(chart_metrics.keys()),
@@ -508,15 +570,12 @@ else:
             x_labels = graph_df["date_label"] + " vs " + graph_df["opponent"]
 
             fig = go.Figure()
-
             for metric in selected_metrics:
                 raw_col = chart_metrics[metric]
                 color = metric_colors[metric]
-                y_vals = graph_df[raw_col]
-
                 fig.add_trace(go.Scatter(
                     x=x_labels,
-                    y=y_vals,
+                    y=graph_df[raw_col],
                     mode="lines+markers",
                     name=metric,
                     line=dict(color=color, width=2),
@@ -528,29 +587,11 @@ else:
                 paper_bgcolor="#0d1117",
                 plot_bgcolor="#0d1117",
                 font=dict(family="Barlow Condensed, sans-serif", color="#e6edf3"),
-                legend=dict(
-                    bgcolor="#161b22",
-                    bordercolor="#30363d",
-                    borderwidth=1,
-                    font=dict(size=13),
-                ),
-                xaxis=dict(
-                    showgrid=False,
-                    tickangle=-35,
-                    tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"),
-                    linecolor="#30363d",
-                ),
-                yaxis=dict(
-                    showgrid=True,
-                    gridcolor="#21262d",
-                    ticksuffix="%",
-                    tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"),
-                    linecolor="#30363d",
-                    rangemode="tozero",
-                ),
+                legend=dict(bgcolor="#161b22", bordercolor="#30363d", borderwidth=1, font=dict(size=13)),
+                xaxis=dict(showgrid=False, tickangle=-35, tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"), linecolor="#30363d"),
+                yaxis=dict(showgrid=True, gridcolor="#21262d", ticksuffix="%", tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"), linecolor="#30363d", rangemode="tozero"),
                 hovermode="x unified",
                 margin=dict(l=40, r=20, t=20, b=80),
                 height=420,
             )
-
             st.plotly_chart(fig, use_container_width=True)
