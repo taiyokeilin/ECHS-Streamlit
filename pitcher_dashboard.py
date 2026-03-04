@@ -308,7 +308,7 @@ def build_html_table(df):
     </table>
     </div>
     """
-st.write(df[["0-0 Win%", "1-1 Win%", "All Lev. Win%"]].dtypes)
+st.write(df.columns.tolist())
 
 st.markdown(build_html_table(table), unsafe_allow_html=True)
 
