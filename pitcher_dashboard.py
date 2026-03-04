@@ -173,7 +173,8 @@ if sel_opp != "All Opponents":
 # ── Season totals ─────────────────────────────────────────────────────────────
 sum_cols  = ["oh_oh_chances","oh_oh_winners","one_one_chances","one_one_winners",
              "all_lev_chances","all_lev_winners","total_pa","early_count_weak_contact",
-             "strikeouts","two_strike_chances","two_strike_cs","two_strike_whiffs"]season = (
+             "strikeouts","two_strike_chances","two_strike_cs","two_strike_whiffs"]
+season = (
     filtered.groupby("pitcher")[sum_cols]
     .sum()
     .reset_index()
