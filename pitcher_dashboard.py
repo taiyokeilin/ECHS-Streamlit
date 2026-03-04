@@ -150,9 +150,10 @@ with st.sidebar:
     st.markdown("## ⚾ Filters")
 
     all_pitchers = sorted(df["pitcher"].unique())
-    sel_pitchers = st.multiselect("Pitcher", all_pitchers, default=all_pitchers)
+    sel_pitchers = st.selectbox("Pitcher", ["All Pitchers"] + all_pitchers)
 
-    all_types = sorted(df["pitch_type"].unique())
+    pitch_type_order = ["All", "FF", "CB", "SL", "CH"]
+    all_types = [p for p in pitch_type_order if p in df["pitch_type"].values]
     sel_type = st.selectbox("Pitch Type", all_types)
 
     all_opps = ["All Opponents"] + sorted(df["opponent"].unique())
@@ -162,10 +163,9 @@ with st.sidebar:
     st.caption("Data refreshes every 5 min when connected to Google Sheets.")
 
 # ── Filter data ───────────────────────────────────────────────────────────────
-filtered = df[
-    (df["pitcher"].isin(sel_pitchers)) &
-    (df["pitch_type"] == sel_type)
-]
+filtered = df[df["pitch_type"] == sel_type]
+if sel_pitchers != "All Pitchers":
+    filtered = filtered[filtered["pitcher"] == sel_pitchers]
 if sel_opp != "All Opponents":
     filtered = filtered[filtered["opponent"] == sel_opp]
 
