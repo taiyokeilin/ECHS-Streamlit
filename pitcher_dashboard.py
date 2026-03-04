@@ -77,11 +77,30 @@ div[data-testid="stMultiSelect"] label {
 import gspread
 from google.oauth2.service_account import Credentials
 
+# @st.cache_data(ttl=300)
+# def load_data():
+#     SHEET_ID = "1lqt0Wnl86S8PYsq7a-PwUD7uYx1Y9RrXhojZjjY1Ua8"
+#     creds = Credentials.from_service_account_info(
+#         st.secrets["gcp_service_account"],
+#         scopes=["https://spreadsheets.google.com/feeds",
+#                 "https://www.googleapis.com/auth/drive"],
+#     )
+#     gc = gspread.authorize(creds)
+#     ws = gc.open_by_key(SHEET_ID).worksheet("test")
+#     df = pd.DataFrame(ws.get_all_records())
+#     df["game_date"] = pd.to_datetime(df["game_date"])
+#     num_cols = [c for c in df.columns if c not in ("pitcher", "pitch_type", "game_date", "opponent")]
+#     df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
+#     return df
+
+
 @st.cache_data(ttl=300)
 def load_data():
     SHEET_ID = "1lqt0Wnl86S8PYsq7a-PwUD7uYx1Y9RrXhojZjjY1Ua8"
+    creds_dict = dict(st.secrets["gcp_service_account"])
+    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
+        creds_dict,
         scopes=["https://spreadsheets.google.com/feeds",
                 "https://www.googleapis.com/auth/drive"],
     )
