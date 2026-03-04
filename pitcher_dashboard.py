@@ -86,7 +86,7 @@ from google.oauth2.service_account import Credentials
 #                 "https://www.googleapis.com/auth/drive"],
 #     )
 #     gc = gspread.authorize(creds)
-#     ws = gc.open_by_key(SHEET_ID).worksheet("test")
+#     ws = gc.open_by_key(SHEET_ID).worksheet("By Game")
 #     df = pd.DataFrame(ws.get_all_records())
 #     df["game_date"] = pd.to_datetime(df["game_date"])
 #     num_cols = [c for c in df.columns if c not in ("pitcher", "pitch_type", "game_date", "opponent")]
@@ -105,7 +105,7 @@ def load_data():
                 "https://www.googleapis.com/auth/drive"],
     )
     gc = gspread.authorize(creds)
-    ws = gc.open_by_key(SHEET_ID).worksheet("test")
+    ws = gc.open_by_key(SHEET_ID).worksheet("By Game")
     df = pd.DataFrame(ws.get_all_records())
     df["game_date"] = pd.to_datetime(df["game_date"])
     num_cols = [c for c in df.columns if c not in ("pitcher", "pitch_type", "game_date", "opponent")]
