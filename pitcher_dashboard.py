@@ -264,7 +264,7 @@ def fmt(val, col_name):
     if pd.isna(val):
         return "—"
     int_cols = ["K", "0-0 Chances", "0-0 Winners", "1-1 Chances", "1-1 Winners",
-                "All Lev. Chances", "All Lev. Winners", "2K Chances"]
+                "All Lev. Chances", "All Lev. Winners", "2K Chances", "2K CS", "2K Whiffs"]
     if col_name in int_cols:
         return str(int(val))
     if isinstance(val, float):
