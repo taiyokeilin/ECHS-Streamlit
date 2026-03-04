@@ -262,58 +262,110 @@ def summary_cards(totals_row):
         </div>""", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-# ── Session state for navigation ──────────────────────────────────────────────
-if "page" not in st.session_state:
-    st.session_state.page = "home"
-if "selected_pitcher" not in st.session_state:
-    st.session_state.selected_pitcher = None
-
 # ── Filter to "All" pitch type only ──────────────────────────────────────────
 df_all = df[df["pitch_type"] == "All"].copy()
+all_pitchers = sorted(df_all["pitcher"].unique().tolist())
+
+# ── Routing via query params ──────────────────────────────────────────────────
+params = st.query_params
+current_pitcher = params.get("pitcher", None)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: HOME — Season totals
 # ══════════════════════════════════════════════════════════════════════════════
-if st.session_state.page == "home":
+if current_pitcher is None:
 
     season = df_all.groupby("pitcher")[sum_cols].sum().reset_index()
     season = add_rates(season)
 
     st.markdown("# ⚾ ECHS Pitcher Metrics")
-    st.markdown(f"<div class='section-header'>Season Totals · {len(season)} Pitchers</div>",
+    st.markdown(f"<div class='section-header'>Season Totals · {len(season)} Pitchers · click a name to view game log</div>",
                 unsafe_allow_html=True)
 
     totals = season[sum_cols].sum()
     summary_cards(totals)
 
-    st.markdown("<div class='section-header'>Per-Pitcher Breakdown — select a name below to view game log</div>",
-                unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>Per-Pitcher Breakdown</div>", unsafe_allow_html=True)
 
     table = (season[list(display_cols.keys())]
              .rename(columns=display_cols)
              .sort_values("0-0 Chances", ascending=False)
              .reset_index(drop=True))
 
-    st.markdown(build_html_table(table, freeze_col=True), unsafe_allow_html=True)
+    # Build table with clickable pitcher names
+    def build_html_table_with_links(df):
+        cols = list(df.columns)
+        header_cells = ""
+        for i, c in enumerate(cols):
+            sticky = 'style="position:sticky;left:0;z-index:2;background:#0d1117;white-space:nowrap;padding:0.4rem 0.75rem;"' if i == 0 else 'style="white-space:nowrap;padding:0.4rem 0.75rem;"'
+            header_cells += f'<th {sticky}>{c}</th>'
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    pitcher_list = table["Pitcher"].tolist()
-    selected = st.selectbox("Select Pitcher", ["— select —"] + pitcher_list, label_visibility="collapsed")
-    if selected != "— select —":
-        st.session_state.selected_pitcher = selected
-        st.session_state.page = "pitcher"
-        st.rerun()
+        rows = ""
+        for _, row in df.iterrows():
+            cells = ""
+            for i, c in enumerate(cols):
+                val = row[c]
+                color = color_for(val, c)
+                color_style = f"color:{color};" if color else "color:#e6edf3;"
+                sticky = "position:sticky;left:0;z-index:1;background:#161b22;" if i == 0 else "background:#161b22;"
+                if i == 0:
+                    # Make pitcher name a link
+                    encoded = str(val).replace(" ", "+")
+                    cell_content = f'<a href="?pitcher={encoded}" style="color:#58a6ff;text-decoration:none;font-weight:600;">{val}</a>'
+                else:
+                    cell_content = fmt(val, c)
+                cells += f'<td style="{sticky}{color_style}padding:0.4rem 0.75rem;">{cell_content}</td>'
+            rows += f'<tr style="border-top:1px solid #30363d;">{cells}</tr>'
+
+        return f"""
+        <div style="overflow-x:auto; border-radius:8px; border:1px solid #30363d;">
+        <table style="border-collapse:collapse; width:100%; font-family:'DM Mono',monospace; font-size:0.85rem;">
+            <thead>
+                <tr style="background:#0d1117; color:#8b949e; font-family:'Barlow Condensed',sans-serif;
+                           font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">
+                    {header_cells}
+                </tr>
+            </thead>
+            <tbody>{rows}</tbody>
+        </table>
+        </div>
+        """
+
+    st.markdown(build_html_table_with_links(table), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: PITCHER — Game-by-game log
 # ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "pitcher":
-    pitcher = st.session_state.selected_pitcher
+else:
+    pitcher = current_pitcher.replace("+", " ")
 
-    if st.button("← Back to Season Overview"):
-        st.session_state.page = "home"
-        st.session_state.selected_pitcher = None
-        st.rerun()
+    # Sidebar pitcher switcher
+    with st.sidebar:
+        st.markdown("## ⚾ Pitchers")
+        for p in all_pitchers:
+            encoded = p.replace(" ", "+")
+            is_active = p == pitcher
+            color = "#58a6ff" if is_active else "#8b949e"
+            weight = "700" if is_active else "400"
+            st.markdown(
+                f'<a href="?pitcher={encoded}" style="display:block;color:{color};font-weight:{weight};'
+                f'font-family:Barlow Condensed,sans-serif;font-size:1rem;text-transform:uppercase;'
+                f'letter-spacing:0.05em;text-decoration:none;padding:0.3rem 0;'
+                f'border-left:{"3px solid #58a6ff" if is_active else "3px solid transparent"};'
+                f'padding-left:0.75rem;margin-bottom:0.25rem;">{p}</a>',
+                unsafe_allow_html=True
+            )
+        st.markdown("---")
+        st.markdown(
+            '<a href="/" style="color:#8b949e;font-family:Barlow Condensed,sans-serif;'
+            'font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;">'
+            '← Season Overview</a>',
+            unsafe_allow_html=True
+        )
+
+    if pitcher not in all_pitchers:
+        st.error(f"Pitcher '{pitcher}' not found.")
+        st.stop()
 
     st.markdown(f"# ⚾ {pitcher}")
     st.markdown("<div class='section-header'>Game Log — All Pitches</div>", unsafe_allow_html=True)
@@ -321,14 +373,13 @@ elif st.session_state.page == "pitcher":
     pitcher_df = df_all[df_all["pitcher"] == pitcher].sort_values("game_date").reset_index(drop=True)
     pitcher_df = add_rates(pitcher_df)
 
-    # Summary cards for this pitcher
     totals = pitcher_df[sum_cols].sum()
     summary_cards(totals)
 
     # Game-by-game table
     game_table = pitcher_df[list(game_display_cols.keys())].rename(columns=game_display_cols).copy()
 
-    # Build season totals row
+    # Season totals row
     totals_rates = add_rates(pd.DataFrame([pitcher_df[sum_cols].sum()]))[
         ["oh_oh_win%","one_one_win%","all_lev_win%","2k_csw%","k_per_pa","efficient_pa%","weak_contact%"]
     ].iloc[0]
