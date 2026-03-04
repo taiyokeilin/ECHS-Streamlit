@@ -197,7 +197,7 @@ if not season.empty:
     t_k    = round(totals["strikeouts"] / totals["total_pa"] * 100, 1) if totals["total_pa"] else 0
     t_eff = round((totals["early_count_weak_contact"] + totals["strikeouts"]) / totals["total_pa"] * 100, 1) if totals["total_pa"] else 0
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     for col, label, val, cls in [
         (c1, "0-0 Win%",       f"{t_oh}%",  "good" if t_oh  >= 55 else "neutral"),
         (c2, "1-1 Win%",       f"{t_11}%",  "good" if t_11  >= 50 else "neutral"),
