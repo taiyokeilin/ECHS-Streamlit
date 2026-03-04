@@ -182,7 +182,7 @@ season = (
 season = add_rates(season)
 
 # ── Header ────────────────────────────────────────────────────────────────────
-st.markdown("# ⚾ Pitcher Metrics Dashboard")
+st.markdown("# ⚾ ECHS Pitcher Metrics Dashboard")
 st.markdown(f"<div class='section-header'>Season Totals · Pitch Type: {sel_type} · {len(season)} pitchers</div>",
             unsafe_allow_html=True)
 
@@ -254,6 +254,7 @@ styled = (
         "0-0 Win%":           "{:.1f}",
         "1-1 Win%":           "{:.1f}",
         "All Leverage Win%":  "{:.1f}",
+        "K":                  "{:.0f}",
         "K%":                 "{:.1f}",
         "2K CSW%":            "{:.1f}",
         "2K CS%":             "{:.1f}",
