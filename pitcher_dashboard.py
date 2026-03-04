@@ -429,9 +429,9 @@ else:
             r=values_closed,
             theta=labels_closed,
             fill="toself",
-            fillcolor="rgba(37, 150, 190, 0.15)",
-            line=dict(color="#028542", width=2),
-            marker=dict(color="#028542", size=6),
+            fillcolor="rgba(220, 220, 220, 0.15)",
+            line=dict(color="#ffffff", width=2),
+            marker=dict(color="#ffffff", size=6),
             hovertemplate="%{theta}<br>%{r:.0f}/100<extra></extra>",
         ))
         radar_fig.update_layout(
@@ -549,11 +549,11 @@ else:
         }
 
         metric_colors = {
-            "0-0 Win%":      "#2596be",
-            "1-1 Win%":      "#2596be",
-            "All Lev. Win%": "#2596be",
-            "2K CSW%":       "#2596be",
-            "Efficient PA%": "#2596be",
+            "0-0 Win%":      "#ffffff",
+            "1-1 Win%":      "#ffffff",
+            "All Lev. Win%": "#ffffff",
+            "2K CSW%":       "#ffffff",
+            "Efficient PA%": "#ffffff",
         }
 
         selected_metrics = st.multiselect(
@@ -602,7 +602,7 @@ else:
                 legend=dict(bgcolor="#161b22", bordercolor="#30363d", borderwidth=1, font=dict(size=13)),
                 xaxis=dict(showgrid=False, tickangle=-35, tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"), linecolor="#30363d"),
                 yaxis=dict(showgrid=True, gridcolor="#21262d", ticksuffix="%", tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"), linecolor="#30363d", rangemode="tozero"),
-                hovermode="x unified",
+                hovermode="closest",
                 margin=dict(l=40, r=20, t=20, b=80),
                 height=420,
             )
