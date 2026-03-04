@@ -379,7 +379,7 @@ else:
             st.session_state.pitcher_view = "by_game"
             st.rerun()
     with col_btn2:
-        if st.button("By Pitch", type="primary" if st.session_state.pitcher_view == "by_pitch" else "secondary"):
+        if st.button(" Type", type="primary" if st.session_state.pitcher_view == "by_pitch" else "secondary"):
             st.session_state.pitcher_view = "by_pitch"
             st.rerun()
 
@@ -434,11 +434,11 @@ else:
         full_table = pd.concat([game_table, totals_row], ignore_index=True)
         st.markdown(build_html_table(full_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
 
-    # ── BY PITCH ──────────────────────────────────────────────────────────────
-    elif view == "by_pitch":
+    # ── BY PITCH TYPE ──────────────────────────────────────────────────────────────
+    elif view == "by_pitch_type":
         st.markdown("<div class='section-header'>Season Totals by Pitch Type</div>", unsafe_allow_html=True)
 
-        pitch_type_order = ["All", "FF", "CB", "SL", "CH"]
+        pitch_type_order = ["FF", "CB", "SL", "CH"]
         df_pitcher_all_types = df[df["pitcher"] == pitcher].copy()
         df_pitcher_all_types = add_rates(df_pitcher_all_types)
 
