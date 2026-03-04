@@ -228,14 +228,16 @@ display_cols = {
     "all_lev_chances":    "All Leverage Chances",
     "all_lev_winners":    "All Leverage Winners",
     "all_lev_win%":       "All Leverage Win%",
+    "two_strike_chances": "2K Chances",
+    "two_strike_cs":      "2K CS",
+    "two_strike_whiffs":  "2K Whiffs",
+    "2k_csw%":            "2K CSW%",
+    # "2k_cs%":             "2K CS%",
+    # "2k_whiff%":          "2K Whiff%",
     "strikeouts":         "K",
     "k_per_pa":           "K%",
-    "two_strike_chances": "2K Chances",
-    "2k_csw%":            "2K CSW%",
-    "2k_cs%":             "2K CS%",
-    "2k_whiff%":          "2K Whiff%",
-    "efficient_pa%":      "Efficient PA%",
     "weak_contact%":      "Weak Contact%",
+    "efficient_pa%":      "Efficient PA%"
 }
 
 table = season[list(display_cols.keys())].rename(columns=display_cols)
@@ -257,10 +259,10 @@ styled = (
         "K":                  "{:.0f}",
         "K%":                 "{:.1f}",
         "2K CSW%":            "{:.1f}",
-        "2K CS%":             "{:.1f}",
-        "2K Whiff%":          "{:.1f}",
-        "Efficient PA%":      "{:.1f}",
+        # "2K CS%":             "{:.1f}",
+        # "2K Whiff%":          "{:.1f}",
         "Weak Contact%":      "{:.1f}",
+        "Efficient PA%":      "{:.1f}"
     }, na_rep="—")
     .applymap(highlight_pct, subset=["0-0 Win%","1-1 Win%","All Leverage Win%","2K CSW%"])
     .set_properties(**{"background-color": "#161b22", "border-color": "#30363d"})
