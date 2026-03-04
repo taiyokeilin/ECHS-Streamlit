@@ -94,7 +94,7 @@ from google.oauth2.service_account import Credentials
 #     return df
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=1)
 def load_data():
     SHEET_ID = "1lqt0Wnl86S8PYsq7a-PwUD7uYx1Y9RrXhojZjjY1Ua8"
     creds_dict = dict(st.secrets["gcp_service_account"])
@@ -310,7 +310,6 @@ def build_html_table(df):
     """
 
 st.markdown(build_html_table(table), unsafe_allow_html=True)
-st.write(table.columns.tolist())
 
 # ── Raw game log ──────────────────────────────────────────────────────────────
 with st.expander("📋 Raw Game Log"):
