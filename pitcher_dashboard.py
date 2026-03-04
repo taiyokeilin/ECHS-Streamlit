@@ -94,7 +94,7 @@ from google.oauth2.service_account import Credentials
 #     return df
 
 
-@st.cache_data(ttl=1)
+@st.cache_data(ttl=300)
 def load_data():
     SHEET_ID = "1lqt0Wnl86S8PYsq7a-PwUD7uYx1Y9RrXhojZjjY1Ua8"
     creds_dict = dict(st.secrets["gcp_service_account"])
