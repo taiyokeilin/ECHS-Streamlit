@@ -173,8 +173,7 @@ if sel_opp != "All Opponents":
 # ── Season totals ─────────────────────────────────────────────────────────────
 sum_cols  = ["oh_oh_chances","oh_oh_winners","one_one_chances","one_one_winners",
              "all_lev_chances","all_lev_winners","total_pa","early_count_weak_contact",
-             "strikeouts","two_strike_chances","two_strike_cs","two_strike_whiffs"]
-season = (
+             "strikeouts","two_strike_chances","two_strike_cs","two_strike_whiffs"]season = (
     filtered.groupby("pitcher")[sum_cols]
     .sum()
     .reset_index()
@@ -218,25 +217,24 @@ if not season.empty:
 st.markdown("<div class='section-header'>Per-Pitcher Breakdown</div>", unsafe_allow_html=True)
 
 display_cols = {
-    "pitcher":         "Pitcher",
-    # "total_pa":        "Total PA",
-    "oh_oh_chances":   "0-0 Chances",
-    "oh_oh_winners":   "0-0 Winners",
-    "oh_oh_win%":      "0-0 Win%",
-    "one_one_chances": "1-1 Chances",
-    "one_one_chances":  "1-1 Winners",
-    "one_one_win%":    "1-1 Win%",
-    "all_lev_chances": "All Leverage Chances",
-    "all_lev_winners": "All Leverage Winners",
-    "all_lev_win%":    "All Leverage Win%",
-    "strikeouts":      "K",
-    "k_per_pa":        "K%",
+    "pitcher":            "Pitcher",
+    "oh_oh_chances":      "0-0 Chances",
+    "oh_oh_winners":      "0-0 Winners",
+    "oh_oh_win%":         "0-0 Win%",
+    "one_one_chances":    "1-1 Chances",
+    "one_one_winners":    "1-1 Winners",
+    "one_one_win%":       "1-1 Win%",
+    "all_lev_chances":    "All Leverage Chances",
+    "all_lev_winners":    "All Leverage Winners",
+    "all_lev_win%":       "All Leverage Win%",
+    "strikeouts":         "K",
+    "k_per_pa":           "K%",
     "two_strike_chances": "2K Chances",
-    "2k_csw%":      "2K CSW%",
-    "2k_cs%":          "2K CS%",
-    "2k_whiff%":       "2K Whiff%",
-    "efficient_pa%":    "Efficient PA%",
-    "weak_contact%":   "Weak Contact%",
+    "2k_csw%":            "2K CSW%",
+    "2k_cs%":             "2K CS%",
+    "2k_whiff%":          "2K Whiff%",
+    "efficient_pa%":      "Efficient PA%",
+    "weak_contact%":      "Weak Contact%",
 }
 
 table = season[list(display_cols.keys())].rename(columns=display_cols)
@@ -252,16 +250,17 @@ def highlight_pct(val):
 styled = (
     table.style
     .format({
-        "0-0 Win%":      "{:.1f}",
-        "1-1 Win%":      "{:.1f}",
-        "All-Lev Win%":  "{:.1f}",
-        "K%":            "{:.1f}",
-        "2K CSW%":    "{:.1f}",
-        "2K CS%":        "{:.1f}",
-        "2K Whiff%":     "{:.1f}",
-        "Weak Cont%":    "{:.1f}",
+        "0-0 Win%":           "{:.1f}",
+        "1-1 Win%":           "{:.1f}",
+        "All Leverage Win%":  "{:.1f}",
+        "K%":                 "{:.1f}",
+        "2K CSW%":            "{:.1f}",
+        "2K CS%":             "{:.1f}",
+        "2K Whiff%":          "{:.1f}",
+        "Efficient PA%":      "{:.1f}",
+        "Weak Contact%":      "{:.1f}",
     }, na_rep="—")
-    .applymap(highlight_pct, subset=["0-0 Win%","1-1 Win%","All-Lev Win%","2K CSW%"])
+    .applymap(highlight_pct, subset=["0-0 Win%","1-1 Win%","All Leverage Win%","2K CSW%"])
     .set_properties(**{"background-color": "#161b22", "border-color": "#30363d"})
     .set_table_styles([
         {"selector": "th", "props": [("background-color","#0d1117"),
