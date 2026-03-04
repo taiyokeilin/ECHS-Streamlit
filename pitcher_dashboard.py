@@ -32,7 +32,7 @@ h1, h2, h3 {
     text-align: center;
 }
 .metric-label {
-    font-size: 0.95rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: #8b949e;
@@ -46,7 +46,6 @@ h1, h2, h3 {
 }
 .metric-value.good { color: #3fb950; }
 .metric-value.neutral { color: #d29922; }
-.metric-value.bad { color: #f85149; }
 .stDataFrame { font-family: 'DM Mono', monospace; font-size: 0.85rem; }
 div[data-testid="stSelectbox"] label,
 div[data-testid="stMultiSelect"] label {
@@ -200,12 +199,12 @@ if not season.empty:
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     for col, label, val, cls in [
-        (c1, "0-0 Win%",          f"{t_oh}%",  "good" if t_oh  >= 65 else ("neutral" if t_oh  >= 50 else "bad")),
-        (c2, "1-1 Win%",          f"{t_11}%",  "good" if t_11  >= 65 else ("neutral" if t_11  >= 50 else "bad")),
-        (c3, "All Leverage Win%", f"{t_lev}%", "good" if t_lev >= 65 else ("neutral" if t_lev >= 50 else "bad")),
-        (c4, "2-Strike CSW%",     f"{t_fin}%", "good" if t_fin >= 35 else ("neutral" if t_fin >= 25 else "bad")),
-        (c5, "K%",                f"{t_k}%",   "good" if t_k   >= 25 else ("neutral" if t_k   >= 20 else "bad")),
-        (c6, "Efficient PA%",     f"{t_eff}%", "good" if t_eff >= 60 else ("neutral" if t_eff >= 50 else "bad")),
+        (c1, "0-0 Win%",       f"{t_oh}%",  "good" if t_oh  >= 55 else "neutral"),
+        (c2, "1-1 Win%",       f"{t_11}%",  "good" if t_11  >= 50 else "neutral"),
+        (c3, "All Leverage Win%",   f"{t_lev}%", "good" if t_lev >= 50 else "neutral"),
+        (c4, "2-Strike CSW%",f"{t_fin}%","good" if t_fin >= 30 else "neutral"),
+        (c5, "K%",             f"{t_k}%",   "good" if t_k   >= 20 else "neutral"),
+        (c6, "Efficient PA%", f"{t_eff}%", "good" if t_eff >= 70 else "neutral")
     ]:
         col.markdown(f"""
         <div class='metric-card'>
@@ -242,9 +241,8 @@ display_cols = {
 
 table = season[list(display_cols.keys())].rename(columns=display_cols)
 
-# Color thresholds per column
-def highlight_pct(val, col_name):
-    if pd.isna(val) or not isinstance(val, float):
+def color_for(val, col_name):
+    if pd.isna(val) or not isinstance(val, (int, float)):
         return ""
     thresholds = {
         "0-0 Win%":          (65, 50),
@@ -257,45 +255,56 @@ def highlight_pct(val, col_name):
     if col_name not in thresholds:
         return ""
     green, yellow = thresholds[col_name]
-    if val >= green:
-        return "color: #3fb950"
-    elif val >= yellow:
-        return "color: #d29922"
-    else:
-        return "color: #f85149"
+    if val >= green:   return "#3fb950"
+    elif val >= yellow: return "#d29922"
+    else:              return "#f85149"
 
-def apply_highlights(df):
-    styles = pd.DataFrame("", index=df.index, columns=df.columns)
-    for col in df.columns:
-        styles[col] = df[col].apply(lambda v: highlight_pct(v, col))
-    return styles
+def fmt(val, col_name):
+    if pd.isna(val):
+        return "—"
+    int_cols = ["K", "0-0 Chances", "0-0 Winners", "1-1 Chances", "1-1 Winners",
+                "All Leverage Chances", "All Leverage Winners", "2K Chances"]
+    if col_name in int_cols:
+        return str(int(val))
+    if isinstance(val, float):
+        return f"{val:.1f}"
+    return str(val)
 
-styled = (
-    table.style
-    .format({
-        "K":                  "{:.0f}",
-        "0-0 Win%":           "{:.1f}",
-        "1-1 Win%":           "{:.1f}",
-        "All Leverage Win%":  "{:.1f}",
-        "K%":                 "{:.1f}",
-        "2K CSW%":            "{:.1f}",
-        "2K CS%":             "{:.1f}",
-        "2K Whiff%":          "{:.1f}",
-        "Efficient PA%":      "{:.1f}",
-        "Weak Contact%":      "{:.1f}",
-    }, na_rep="—")
-    .apply(apply_highlights, axis=None)
-    .set_properties(**{"background-color": "#161b22", "border-color": "#30363d"})
-    .set_table_styles([
-        {"selector": "th", "props": [("background-color","#0d1117"),
-                                      ("color","#8b949e"),
-                                      ("font-size","0.72rem"),
-                                      ("text-transform","uppercase"),
-                                      ("letter-spacing","0.08em")]},
-    ])
-)
+def build_html_table(df):
+    cols = list(df.columns)
+    header_cells = ""
+    for i, c in enumerate(cols):
+        sticky = 'style="position:sticky;left:0;z-index:2;background:#0d1117;"' if i == 0 else ""
+        header_cells += f'<th {sticky}>{c}</th>'
 
-st.dataframe(styled, use_container_width=True, hide_index=True)
+    rows = ""
+    for _, row in df.iterrows():
+        cells = ""
+        for i, c in enumerate(cols):
+            val = row[c]
+            color = color_for(val, c)
+            color_style = f"color:{color};" if color else "color:#e6edf3;"
+            sticky = "position:sticky;left:0;z-index:1;background:#161b22;" if i == 0 else ""
+            cells += f'<td style="{sticky}{color_style}">{fmt(val, c)}</td>'
+        rows += f"<tr>{cells}</tr>"
+
+    return f"""
+    <div style="overflow-x:auto; border-radius:8px; border:1px solid #30363d;">
+    <table style="border-collapse:collapse; width:100%; font-family:'DM Mono',monospace; font-size:0.85rem;">
+        <thead>
+            <tr style="background:#0d1117; color:#8b949e; font-family:'Barlow Condensed',sans-serif;
+                       font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">
+                {header_cells}
+            </tr>
+        </thead>
+        <tbody>
+            {rows}
+        </tbody>
+    </table>
+    </div>
+    """
+
+st.markdown(build_html_table(table), unsafe_allow_html=True)
 
 # ── Raw game log ──────────────────────────────────────────────────────────────
 with st.expander("📋 Raw Game Log"):
