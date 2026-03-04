@@ -32,7 +32,7 @@ h1, h2, h3 {
     text-align: center;
 }
 .metric-label {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: #8b949e;
@@ -46,6 +46,7 @@ h1, h2, h3 {
 }
 .metric-value.good { color: #3fb950; }
 .metric-value.neutral { color: #d29922; }
+.metric-value.bad { color: #f85149; }
 .stDataFrame { font-family: 'DM Mono', monospace; font-size: 0.85rem; }
 div[data-testid="stSelectbox"] label,
 div[data-testid="stMultiSelect"] label {
@@ -182,7 +183,7 @@ season = (
 season = add_rates(season)
 
 # ── Header ────────────────────────────────────────────────────────────────────
-st.markdown("# ⚾ ECHS Pitcher Metrics Dashboard")
+st.markdown("# ⚾ Pitcher Metrics Dashboard")
 st.markdown(f"<div class='section-header'>Season Totals · Pitch Type: {sel_type} · {len(season)} pitchers</div>",
             unsafe_allow_html=True)
 
@@ -199,12 +200,12 @@ if not season.empty:
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     for col, label, val, cls in [
-        (c1, "0-0 Win%",       f"{t_oh}%",  "good" if t_oh  >= 55 else "neutral"),
-        (c2, "1-1 Win%",       f"{t_11}%",  "good" if t_11  >= 50 else "neutral"),
-        (c3, "All Leverage Win%",   f"{t_lev}%", "good" if t_lev >= 50 else "neutral"),
-        (c4, "2-Strike CSW%",f"{t_fin}%","good" if t_fin >= 30 else "neutral"),
-        (c5, "K%",             f"{t_k}%",   "good" if t_k   >= 20 else "neutral"),
-        (c6, "Efficient PA%", f"{t_eff}%", "good" if t_eff >= 70 else "neutral")
+        (c1, "0-0 Win%",          f"{t_oh}%",  "good" if t_oh  >= 65 else ("neutral" if t_oh  >= 50 else "bad")),
+        (c2, "1-1 Win%",          f"{t_11}%",  "good" if t_11  >= 65 else ("neutral" if t_11  >= 50 else "bad")),
+        (c3, "All Leverage Win%", f"{t_lev}%", "good" if t_lev >= 65 else ("neutral" if t_lev >= 50 else "bad")),
+        (c4, "2-Strike CSW%",     f"{t_fin}%", "good" if t_fin >= 35 else ("neutral" if t_fin >= 25 else "bad")),
+        (c5, "K%",                f"{t_k}%",   "good" if t_k   >= 25 else ("neutral" if t_k   >= 20 else "bad")),
+        (c6, "Efficient PA%",     f"{t_eff}%", "good" if t_eff >= 60 else ("neutral" if t_eff >= 50 else "bad")),
     ]:
         col.markdown(f"""
         <div class='metric-card'>
@@ -218,53 +219,72 @@ if not season.empty:
 st.markdown("<div class='section-header'>Per-Pitcher Breakdown</div>", unsafe_allow_html=True)
 
 display_cols = {
-    "pitcher":            "Pitcher",
-    "oh_oh_chances":      "0-0 Chances",
-    "oh_oh_winners":      "0-0 Winners",
-    "oh_oh_win%":         "0-0 Win%",
-    "one_one_chances":    "1-1 Chances",
-    "one_one_winners":    "1-1 Winners",
-    "one_one_win%":       "1-1 Win%",
-    "all_lev_chances":    "All Leverage Chances",
-    "all_lev_winners":    "All Leverage Winners",
-    "all_lev_win%":       "All Leverage Win%",
+    "pitcher":         "Pitcher",
+    # "total_pa":        "Total PA",
+    "oh_oh_chances":   "0-0 Chances",
+    "oh_oh_winners":   "0-0 Winners",
+    "oh_oh_win%":      "0-0 Win%",
+    "one_one_chances": "1-1 Chances",
+    "one_one_chances":  "1-1 Winners",
+    "one_one_win%":    "1-1 Win%",
+    "all_lev_chances": "All Leverage Chances",
+    "all_lev_winners": "All Leverage Winners",
+    "all_lev_win%":    "All Leverage Win%",
+    "strikeouts":      "K",
+    "k_per_pa":        "K%",
     "two_strike_chances": "2K Chances",
-    "two_strike_cs":      "2K CS",
-    "two_strike_whiffs":  "2K Whiffs",
-    "2k_csw%":            "2K CSW%",
-    # "2k_cs%":             "2K CS%",
-    # "2k_whiff%":          "2K Whiff%",
-    "strikeouts":         "K",
-    "k_per_pa":           "K%",
-    "weak_contact%":      "Weak Contact%",
-    "efficient_pa%":      "Efficient PA%"
+    "2k_csw%":      "2K CSW%",
+    "2k_cs%":          "2K CS%",
+    "2k_whiff%":       "2K Whiff%",
+    "efficient_pa%":    "Efficient PA%",
+    "weak_contact%":   "Weak Contact%",
 }
 
 table = season[list(display_cols.keys())].rename(columns=display_cols)
 
-# Color map helpers
-def highlight_pct(val):
-    if pd.isna(val):
+# Color thresholds per column
+def highlight_pct(val, col_name):
+    if pd.isna(val) or not isinstance(val, float):
         return ""
-    if isinstance(val, float) and val >= 50:
+    thresholds = {
+        "0-0 Win%":          (65, 50),
+        "1-1 Win%":          (65, 50),
+        "All Leverage Win%": (65, 50),
+        "2K CSW%":           (35, 25),
+        "K%":                (25, 20),
+        "Efficient PA%":     (60, 50),
+    }
+    if col_name not in thresholds:
+        return ""
+    green, yellow = thresholds[col_name]
+    if val >= green:
         return "color: #3fb950"
-    return ""
+    elif val >= yellow:
+        return "color: #d29922"
+    else:
+        return "color: #f85149"
+
+def apply_highlights(df):
+    styles = pd.DataFrame("", index=df.index, columns=df.columns)
+    for col in df.columns:
+        styles[col] = df[col].apply(lambda v: highlight_pct(v, col))
+    return styles
 
 styled = (
     table.style
     .format({
+        "K":                  "{:.0f}",
         "0-0 Win%":           "{:.1f}",
         "1-1 Win%":           "{:.1f}",
         "All Leverage Win%":  "{:.1f}",
-        "K":                  "{:.0f}",
         "K%":                 "{:.1f}",
         "2K CSW%":            "{:.1f}",
-        # "2K CS%":             "{:.1f}",
-        # "2K Whiff%":          "{:.1f}",
+        "2K CS%":             "{:.1f}",
+        "2K Whiff%":          "{:.1f}",
+        "Efficient PA%":      "{:.1f}",
         "Weak Contact%":      "{:.1f}",
-        "Efficient PA%":      "{:.1f}"
     }, na_rep="—")
-    .applymap(highlight_pct, subset=["0-0 Win%","1-1 Win%","All Leverage Win%","2K CSW%"])
+    .apply(apply_highlights, axis=None)
     .set_properties(**{"background-color": "#161b22", "border-color": "#30363d"})
     .set_table_styles([
         {"selector": "th", "props": [("background-color","#0d1117"),
