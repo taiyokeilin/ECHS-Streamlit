@@ -373,7 +373,7 @@ else:
     if "pitcher_view" not in st.session_state:
         st.session_state.pitcher_view = "by_game"
 
-    col_btn1, col_btn2, _ = st.columns([1, 1, 8])
+    col_btn1, col_btn2, col_btn3, _ = st.columns([1, 1, 1, 7])
     with col_btn1:
         if st.button("By Game", type="primary" if st.session_state.pitcher_view == "by_game" else "secondary"):
             st.session_state.pitcher_view = "by_game"
@@ -381,6 +381,10 @@ else:
     with col_btn2:
         if st.button("By Pitch Type", type="primary" if st.session_state.pitcher_view == "by_pitch_type" else "secondary"):
             st.session_state.pitcher_view = "by_pitch_type"
+            st.rerun()
+    with col_btn3:
+        if st.button("Graph", type="primary" if st.session_state.pitcher_view == "graph" else "secondary"):
+            st.session_state.pitcher_view = "graph"
             st.rerun()
 
     view = st.session_state.pitcher_view
@@ -434,7 +438,7 @@ else:
         full_table = pd.concat([game_table, totals_row], ignore_index=True)
         st.markdown(build_html_table(full_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
 
-    # ── BY PITCH TYPE ──────────────────────────────────────────────────────────────
+    # ── BY PITCH ──────────────────────────────────────────────────────────────
     elif view == "by_pitch_type":
         st.markdown("<div class='section-header'>Season Totals by Pitch Type</div>", unsafe_allow_html=True)
 
@@ -461,10 +465,93 @@ else:
 
         if pitch_rows:
             pitch_table = pd.DataFrame(pitch_rows)
-            # Season totals row using "All" rows only
             all_df = df_pitcher_all_types[df_pitcher_all_types["pitch_type"] == "All"]
             totals_row = build_totals_row(all_df, "Pitch", "SEASON", pitch_display_cols)
             full_pitch_table = pd.concat([pitch_table, totals_row], ignore_index=True)
             st.markdown(build_html_table(full_pitch_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
         else:
             st.info("No pitch type data available for this pitcher.")
+
+    # ── GRAPH ─────────────────────────────────────────────────────────────────
+    elif view == "graph":
+        import plotly.graph_objects as go
+
+        st.markdown("<div class='section-header'>Game-by-Game Trends — All Pitches</div>", unsafe_allow_html=True)
+
+        chart_metrics = {
+            "0-0 Win%":      "oh_oh_win%",
+            "1-1 Win%":      "one_one_win%",
+            "All Lev. Win%": "all_lev_win%",
+            "2K CSW%":       "2k_csw%",
+            "Efficient PA%": "efficient_pa%",
+        }
+
+        metric_colors = {
+            "0-0 Win%":      "#58a6ff",
+            "1-1 Win%":      "#3fb950",
+            "All Lev. Win%": "#d29922",
+            "2K CSW%":       "#f78166",
+            "Efficient PA%": "#bc8cff",
+        }
+
+        # Metric selector
+        selected_metrics = st.multiselect(
+            "Select metrics to display",
+            options=list(chart_metrics.keys()),
+            default=["0-0 Win%", "All Lev. Win%", "2K CSW%"],
+        )
+
+        if not selected_metrics:
+            st.info("Select at least one metric above.")
+        else:
+            graph_df = pitcher_df.copy()
+            graph_df["date_label"] = graph_df["game_date"].dt.strftime("%m/%d")
+            x_labels = graph_df["date_label"] + " vs " + graph_df["opponent"]
+
+            fig = go.Figure()
+
+            for metric in selected_metrics:
+                raw_col = chart_metrics[metric]
+                color = metric_colors[metric]
+                y_vals = graph_df[raw_col]
+
+                fig.add_trace(go.Scatter(
+                    x=x_labels,
+                    y=y_vals,
+                    mode="lines+markers",
+                    name=metric,
+                    line=dict(color=color, width=2),
+                    marker=dict(color=color, size=7),
+                    hovertemplate=f"<b>{metric}</b><br>%{{x}}<br>%{{y:.1f}}%<extra></extra>",
+                ))
+
+            fig.update_layout(
+                paper_bgcolor="#0d1117",
+                plot_bgcolor="#0d1117",
+                font=dict(family="Barlow Condensed, sans-serif", color="#e6edf3"),
+                legend=dict(
+                    bgcolor="#161b22",
+                    bordercolor="#30363d",
+                    borderwidth=1,
+                    font=dict(size=13),
+                ),
+                xaxis=dict(
+                    showgrid=False,
+                    tickangle=-35,
+                    tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"),
+                    linecolor="#30363d",
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor="#21262d",
+                    ticksuffix="%",
+                    tickfont=dict(family="DM Mono, monospace", size=11, color="#8b949e"),
+                    linecolor="#30363d",
+                    rangemode="tozero",
+                ),
+                hovermode="x unified",
+                margin=dict(l=40, r=20, t=20, b=80),
+                height=420,
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
