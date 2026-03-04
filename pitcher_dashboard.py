@@ -46,6 +46,7 @@ h1, h2, h3 {
 }
 .metric-value.good { color: #3fb950; }
 .metric-value.neutral { color: #d29922; }
+.metric-value.bad { color: #f85149; }
 .stDataFrame { font-family: 'DM Mono', monospace; font-size: 0.85rem; }
 div[data-testid="stSelectbox"] label,
 div[data-testid="stMultiSelect"] label {
@@ -199,12 +200,12 @@ if not season.empty:
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     for col, label, val, cls in [
-        (c1, "0-0 Win%",       f"{t_oh}%",  "good" if t_oh  >= 55 else "neutral"),
-        (c2, "1-1 Win%",       f"{t_11}%",  "good" if t_11  >= 50 else "neutral"),
-        (c3, "All Lev. Win%",   f"{t_lev}%", "good" if t_lev >= 50 else "neutral"),
-        (c4, "2-Strike CSW%",f"{t_fin}%","good" if t_fin >= 30 else "neutral"),
-        (c5, "K%",             f"{t_k}%",   "good" if t_k   >= 20 else "neutral"),
-        (c6, "Efficient PA%", f"{t_eff}%", "good" if t_eff >= 70 else "neutral")
+        (c1, "0-0 Win%",      f"{t_oh}%",  "good" if t_oh  >= 65 else ("neutral" if t_oh  >= 50 else "bad")),
+        (c2, "1-1 Win%",      f"{t_11}%",  "good" if t_11  >= 65 else ("neutral" if t_11  >= 50 else "bad")),
+        (c3, "All Lev. Win%", f"{t_lev}%", "good" if t_lev >= 65 else ("neutral" if t_lev >= 50 else "bad")),
+        (c4, "2-Strike CSW%", f"{t_fin}%", "good" if t_fin >= 35 else ("neutral" if t_fin >= 25 else "bad")),
+        (c5, "K%",            f"{t_k}%",   "good" if t_k   >= 25 else ("neutral" if t_k   >= 20 else "bad")),
+        (c6, "Efficient PA%", f"{t_eff}%", "good" if t_eff >= 60 else ("neutral" if t_eff >= 50 else "bad")),
     ]:
         col.markdown(f"""
         <div class='metric-card'>
@@ -308,7 +309,6 @@ def build_html_table(df):
     </table>
     </div>
     """
-st.write(df.columns.tolist())
 
 st.markdown(build_html_table(table), unsafe_allow_html=True)
 
