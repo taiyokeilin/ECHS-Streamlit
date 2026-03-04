@@ -429,9 +429,9 @@ else:
             r=values_closed,
             theta=labels_closed,
             fill="toself",
-            fillcolor="rgba(88, 166, 255, 0.15)",
-            line=dict(color="#58a6ff", width=2),
-            marker=dict(color="#58a6ff", size=6),
+            fillcolor="rgba(37, 150, 190, 0.15)",
+            line=dict(color="#028542", width=2),
+            marker=dict(color="#028542", size=6),
             hovertemplate="%{theta}<br>%{r:.0f}/100<extra></extra>",
         ))
         radar_fig.update_layout(
@@ -541,19 +541,19 @@ else:
         st.markdown("<div class='section-header'>Game-by-Game Trends — All Pitches</div>", unsafe_allow_html=True)
 
         chart_metrics = {
-            "0-0 Win%":      "oh_oh_win%",
-            "1-1 Win%":      "one_one_win%",
-            "All Lev. Win%": "all_lev_win%",
-            "2K CSW%":       "2k_csw%",
-            "Efficient PA%": "efficient_pa%",
+            "0-0 Win%":      ("oh_oh_win%",    "oh_oh_winners",                    "oh_oh_chances"),
+            "1-1 Win%":      ("one_one_win%",   "one_one_winners",                  "one_one_chances"),
+            "All Lev. Win%": ("all_lev_win%",   "all_lev_winners",                  "all_lev_chances"),
+            "2K CSW%":       ("2k_csw%",        "two_strike_cs+two_strike_whiffs",  "two_strike_chances"),
+            "Efficient PA%": ("efficient_pa%",  "early_count_weak_contact+strikeouts", "total_pa"),
         }
 
         metric_colors = {
-            "0-0 Win%":      "#58a6ff",
-            "1-1 Win%":      "#3fb950",
-            "All Lev. Win%": "#d29922",
-            "2K CSW%":       "#f78166",
-            "Efficient PA%": "#bc8cff",
+            "0-0 Win%":      "#2596be",
+            "1-1 Win%":      "#2596be",
+            "All Lev. Win%": "#2596be",
+            "2K CSW%":       "#2596be",
+            "Efficient PA%": "#2596be",
         }
 
         selected_metrics = st.multiselect(
@@ -571,8 +571,19 @@ else:
 
             fig = go.Figure()
             for metric in selected_metrics:
-                raw_col = chart_metrics[metric]
+                raw_col, num_col, den_col = chart_metrics[metric]
                 color = metric_colors[metric]
+
+                # Build numerator and denominator arrays for tooltip
+                if "+" in num_col:
+                    a, b = num_col.split("+")
+                    num_vals = (graph_df[a] + graph_df[b]).astype(int)
+                else:
+                    num_vals = graph_df[num_col].astype(int)
+                den_vals = graph_df[den_col].astype(int)
+
+                custom_data = list(zip(num_vals, den_vals))
+
                 fig.add_trace(go.Scatter(
                     x=x_labels,
                     y=graph_df[raw_col],
@@ -580,7 +591,8 @@ else:
                     name=metric,
                     line=dict(color=color, width=2),
                     marker=dict(color=color, size=7),
-                    hovertemplate=f"<b>{metric}</b><br>%{{x}}<br>%{{y:.1f}}%<extra></extra>",
+                    customdata=custom_data,
+                    hovertemplate=f"<b>{metric}</b><br>%{{x}}<br>%{{customdata[0]}}/%{{customdata[1]}} (%{{y:.1f}}%)<extra></extra>",
                 ))
 
             fig.update_layout(
