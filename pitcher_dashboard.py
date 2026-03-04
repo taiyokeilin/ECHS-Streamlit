@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import plotly.graph_objects as go
 from google.oauth2.service_account import Credentials
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -474,8 +475,6 @@ else:
 
     # ── GRAPH ─────────────────────────────────────────────────────────────────
     elif view == "graph":
-        import plotly.graph_objects as go
-
         st.markdown("<div class='section-header'>Game-by-Game Trends — All Pitches</div>", unsafe_allow_html=True)
 
         chart_metrics = {
