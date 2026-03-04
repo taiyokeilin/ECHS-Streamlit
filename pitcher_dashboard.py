@@ -201,7 +201,7 @@ if not season.empty:
     for col, label, val, cls in [
         (c1, "0-0 Win%",       f"{t_oh}%",  "good" if t_oh  >= 55 else "neutral"),
         (c2, "1-1 Win%",       f"{t_11}%",  "good" if t_11  >= 50 else "neutral"),
-        (c3, "All Leverage Win%",   f"{t_lev}%", "good" if t_lev >= 50 else "neutral"),
+        (c3, "All Lev. Win%",   f"{t_lev}%", "good" if t_lev >= 50 else "neutral"),
         (c4, "2-Strike CSW%",f"{t_fin}%","good" if t_fin >= 30 else "neutral"),
         (c5, "K%",             f"{t_k}%",   "good" if t_k   >= 20 else "neutral"),
         (c6, "Efficient PA%", f"{t_eff}%", "good" if t_eff >= 70 else "neutral")
