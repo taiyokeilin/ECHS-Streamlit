@@ -379,8 +379,8 @@ else:
             st.session_state.pitcher_view = "by_game"
             st.rerun()
     with col_btn2:
-        if st.button(" Type", type="primary" if st.session_state.pitcher_view == "by_pitch" else "secondary"):
-            st.session_state.pitcher_view = "by_pitch"
+        if st.button("By Pitch Type", type="primary" if st.session_state.pitcher_view == "by_pitch_type" else "secondary"):
+            st.session_state.pitcher_view = "by_pitch_type"
             st.rerun()
 
     view = st.session_state.pitcher_view
