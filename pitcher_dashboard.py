@@ -248,7 +248,7 @@ def color_for(val, col_name):
     thresholds = {
         "0-0 Win%":          (65, 50),
         "1-1 Win%":          (65, 50),
-        "All Leverage Win%": (65, 50),
+        "All Lev. Win%": (65, 50),
         "2K CSW%":           (35, 25),
         "K%":                (25, 20),
         "Efficient PA%":     (60, 50),
