@@ -310,6 +310,7 @@ def build_html_table(df):
     """
 
 st.markdown(build_html_table(table), unsafe_allow_html=True)
+st.write(table.columns.tolist())
 
 # ── Raw game log ──────────────────────────────────────────────────────────────
 with st.expander("📋 Raw Game Log"):
