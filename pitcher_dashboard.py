@@ -89,6 +89,8 @@ def load_data():
     ws = gc.open_by_key(SHEET_ID).worksheet("test")
     df = pd.DataFrame(ws.get_all_records())
     df["game_date"] = pd.to_datetime(df["game_date"])
+    num_cols = [c for c in df.columns if c not in ("pitcher", "pitch_type", "game_date", "opponent")]
+    df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
     return df
 
 # @st.cache_data
