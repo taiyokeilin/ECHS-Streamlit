@@ -127,6 +127,11 @@ df = load_data()
 # ── Derived columns ───────────────────────────────────────────────────────────
 def add_rates(d):
     d = d.copy()
+    # Force all columns except identifiers to numeric
+    non_numeric = ["pitcher", "pitch_type", "game_date", "opponent"]
+    for col in d.columns:
+        if col not in non_numeric:
+            d[col] = pd.to_numeric(d[col], errors="coerce")
     d["oh_oh_win%"]    = (d["oh_oh_winners"]    / d["oh_oh_chances"].replace(0, pd.NA) * 100).round(1)
     d["one_one_win%"]  = (d["one_one_winners"]   / d["one_one_chances"].replace(0, pd.NA) * 100).round(1)
     d["all_lev_win%"]  = (d["all_lev_winners"]   / d["all_lev_chances"].replace(0, pd.NA) * 100).round(1)
@@ -136,7 +141,6 @@ def add_rates(d):
                           / d["two_strike_chances"].replace(0, pd.NA) * 100).round(1)
     d["k_per_pa"]      = (d["strikeouts"] / d["total_pa"].replace(0, pd.NA) * 100).round(1)
     d["weak_contact%"] = (d["early_count_weak_contact"] / d["total_pa"].replace(0, pd.NA) * 100).round(1)
-    # d["efficient_pa%"] = ((d["early_count_weak_contact"] + d["strikeouts"]) / d["total_pa"].replace(0, pd.NA) * 100).round(1)
     return d
 
 df = add_rates(df)
