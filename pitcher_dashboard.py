@@ -132,15 +132,15 @@ def add_rates(d):
     for col in d.columns:
         if col not in non_numeric:
             d[col] = pd.to_numeric(d[col], errors="coerce")
-    d["oh_oh_win%"]    = (d["oh_oh_winners"]    / d["oh_oh_chances"].replace(0, pd.NA) * 100).round(1)
-    d["one_one_win%"]  = (d["one_one_winners"]   / d["one_one_chances"].replace(0, pd.NA) * 100).round(1)
-    d["all_lev_win%"]  = (d["all_lev_winners"]   / d["all_lev_chances"].replace(0, pd.NA) * 100).round(1)
-    d["2k_cs%"]        = (d["two_strike_cs"]      / d["two_strike_chances"].replace(0, pd.NA) * 100).round(1)
-    d["2k_whiff%"]     = (d["two_strike_whiffs"]  / d["two_strike_chances"].replace(0, pd.NA) * 100).round(1)
-    d["2k_finish%"]    = ((d["two_strike_cs"] + d["two_strike_whiffs"])
-                          / d["two_strike_chances"].replace(0, pd.NA) * 100).round(1)
-    d["k_per_pa"]      = (d["strikeouts"] / d["total_pa"].replace(0, pd.NA) * 100).round(1)
-    d["weak_contact%"] = (d["early_count_weak_contact"] / d["total_pa"].replace(0, pd.NA) * 100).round(1)
+    
+    d["oh_oh_win%"]    = (d["oh_oh_winners"]    / d["oh_oh_chances"].where(d["oh_oh_chances"] > 0) * 100).round(1)
+    d["one_one_win%"]  = (d["one_one_winners"]   / d["one_one_chances"].where(d["one_one_chances"] > 0) * 100).round(1)
+    d["all_lev_win%"]  = (d["all_lev_winners"]   / d["all_lev_chances"].where(d["all_lev_chances"] > 0) * 100).round(1)
+    d["2k_cs%"]        = (d["two_strike_cs"]      / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
+    d["2k_whiff%"]     = (d["two_strike_whiffs"]  / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
+    d["2k_finish%"]    = ((d["two_strike_cs"] + d["two_strike_whiffs"]) / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
+    d["k_per_pa"]      = (d["strikeouts"] / d["total_pa"].where(d["total_pa"] > 0) * 100).round(1)
+    d["weak_contact%"] = (d["early_count_weak_contact"] / d["total_pa"].where(d["total_pa"] > 0) * 100).round(1)
     return d
 
 df = add_rates(df)
