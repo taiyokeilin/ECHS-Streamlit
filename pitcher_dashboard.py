@@ -431,7 +431,7 @@ else:
     if view == "by_game":
         st.markdown("<div class='section-header'>Game Log — All Pitches</div>", unsafe_allow_html=True)
 
-        game_cols = {"game_date": "Date", "opponent": "Opponent", **pitch_display_cols}
+        game_cols = {"game_date": "Date", "opponent": "Opponent", **{k: v for k, v in game_display_cols.items() if k not in ("game_date", "opponent")}}
         game_table = pitcher_df[list(game_cols.keys())].rename(columns=game_cols).copy()
         totals_row = build_totals_row(pitcher_df, "Date", "SEASON", {"opponent": "Opponent", **pitch_display_cols})
         # blank opponent in totals
