@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import plotly.graph_objects as go
 from google.oauth2.service_account import Credentials
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -373,7 +374,7 @@ else:
     if "pitcher_view" not in st.session_state:
         st.session_state.pitcher_view = "by_game"
 
-    col_btn1, col_btn2, col_btn3, _ = st.columns([1, 1, 1, 7])
+    col_btn1, col_btn2, col_btn3, _ = st.columns([1.2, 1.2, 1, 7])
     with col_btn1:
         if st.button("By Game", type="primary" if st.session_state.pitcher_view == "by_game" else "secondary"):
             st.session_state.pitcher_view = "by_game"
@@ -474,8 +475,6 @@ else:
 
     # ── GRAPH ─────────────────────────────────────────────────────────────────
     elif view == "graph":
-        import plotly.graph_objects as go
-
         st.markdown("<div class='section-header'>Game-by-Game Trends — All Pitches</div>", unsafe_allow_html=True)
 
         chart_metrics = {
