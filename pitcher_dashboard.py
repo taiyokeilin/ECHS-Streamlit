@@ -368,37 +368,103 @@ else:
         st.stop()
 
     st.markdown(f"# ⚾ {pitcher}")
-    st.markdown("<div class='section-header'>Game Log — All Pitches</div>", unsafe_allow_html=True)
 
+    # ── View toggle ───────────────────────────────────────────────────────────
+    if "pitcher_view" not in st.session_state:
+        st.session_state.pitcher_view = "by_game"
+
+    col_btn1, col_btn2, _ = st.columns([1, 1, 8])
+    with col_btn1:
+        if st.button("By Game", type="primary" if st.session_state.pitcher_view == "by_game" else "secondary"):
+            st.session_state.pitcher_view = "by_game"
+            st.rerun()
+    with col_btn2:
+        if st.button("By Pitch", type="primary" if st.session_state.pitcher_view == "by_pitch" else "secondary"):
+            st.session_state.pitcher_view = "by_pitch"
+            st.rerun()
+
+    view = st.session_state.pitcher_view
+
+    # ── Data for this pitcher ─────────────────────────────────────────────────
     pitcher_df = df_all[df_all["pitcher"] == pitcher].sort_values("game_date").reset_index(drop=True)
     pitcher_df = add_rates(pitcher_df)
-
     totals = pitcher_df[sum_cols].sum()
     summary_cards(totals)
 
-    # Game-by-game table
-    game_table = pitcher_df[list(game_display_cols.keys())].rename(columns=game_display_cols).copy()
+    # ── Columns through 2K CSW% only (for both views) ────────────────────────
+    pitch_display_cols = {
+        "oh_oh_chances":      "0-0 Chances",
+        "oh_oh_winners":      "0-0 Winners",
+        "oh_oh_win%":         "0-0 Win%",
+        "one_one_chances":    "1-1 Chances",
+        "one_one_winners":    "1-1 Winners",
+        "one_one_win%":       "1-1 Win%",
+        "all_lev_chances":    "All Lev. Chances",
+        "all_lev_winners":    "All Lev. Winners",
+        "all_lev_win%":       "All Lev. Win%",
+        "two_strike_chances": "2K Chances",
+        "two_strike_cs":      "2K CS",
+        "two_strike_whiffs":  "2K Whiffs",
+        "2k_csw%":            "2K CSW%",
+    }
 
-    # Season totals row
-    totals_rates = add_rates(pd.DataFrame([pitcher_df[sum_cols].sum()]))[
-        ["oh_oh_win%","one_one_win%","all_lev_win%","2k_csw%","k_per_pa","efficient_pa%","weak_contact%"]
-    ].iloc[0]
+    def build_totals_row(source_df, first_col_name, first_col_val, col_map):
+        rates = add_rates(pd.DataFrame([source_df[sum_cols].sum()]))[
+            ["oh_oh_win%","one_one_win%","all_lev_win%","2k_csw%","k_per_pa","efficient_pa%","weak_contact%"]
+        ].iloc[0]
+        row = {first_col_name: first_col_val}
+        for raw, display in col_map.items():
+            if raw in sum_cols:
+                row[display] = source_df[sum_cols].sum()[raw]
+            elif raw in rates.index:
+                row[display] = rates[raw]
+            else:
+                row[display] = float("nan")
+        return pd.DataFrame([row])
 
-    totals_display = {}
-    for raw, display in game_display_cols.items():
-        if display == "Date":
-            totals_display[display] = "SEASON"
-        elif display == "Opponent":
-            totals_display[display] = ""
-        elif raw in sum_cols:
-            totals_display[display] = pitcher_df[sum_cols].sum()[raw]
-        elif raw in totals_rates.index:
-            totals_display[display] = totals_rates[raw]
+    # ── BY GAME ───────────────────────────────────────────────────────────────
+    if view == "by_game":
+        st.markdown("<div class='section-header'>Game Log — All Pitches</div>", unsafe_allow_html=True)
+
+        game_cols = {"game_date": "Date", "opponent": "Opponent", **pitch_display_cols}
+        game_table = pitcher_df[list(game_cols.keys())].rename(columns=game_cols).copy()
+        totals_row = build_totals_row(pitcher_df, "Date", "SEASON", {"opponent": "Opponent", **pitch_display_cols})
+        # blank opponent in totals
+        totals_row["Opponent"] = ""
+        full_table = pd.concat([game_table, totals_row], ignore_index=True)
+        st.markdown(build_html_table(full_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
+
+    # ── BY PITCH ──────────────────────────────────────────────────────────────
+    elif view == "by_pitch":
+        st.markdown("<div class='section-header'>Season Totals by Pitch Type</div>", unsafe_allow_html=True)
+
+        pitch_type_order = ["All", "FF", "CB", "SL", "CH"]
+        df_pitcher_all_types = df[df["pitcher"] == pitcher].copy()
+        df_pitcher_all_types = add_rates(df_pitcher_all_types)
+
+        pitch_rows = []
+        for pt in pitch_type_order:
+            pt_df = df_pitcher_all_types[df_pitcher_all_types["pitch_type"] == pt]
+            if pt_df.empty:
+                continue
+            pt_totals = pt_df[sum_cols].sum()
+            pt_rates = add_rates(pd.DataFrame([pt_totals])).iloc[0]
+            row = {"Pitch": pt}
+            for raw, display in pitch_display_cols.items():
+                if raw in sum_cols:
+                    row[display] = pt_totals[raw]
+                elif raw in pt_rates.index:
+                    row[display] = pt_rates[raw]
+                else:
+                    row[display] = float("nan")
+            pitch_rows.append(row)
+
+        if pitch_rows:
+            pitch_table = pd.DataFrame(pitch_rows)
+            # Season totals row using "All" rows only
+            all_df = df_pitcher_all_types[df_pitcher_all_types["pitch_type"] == "All"]
+            totals_row = build_totals_row(all_df, "Pitch", "SEASON", pitch_display_cols)
+            full_pitch_table = pd.concat([pitch_table, totals_row], ignore_index=True)
+            st.markdown(build_html_table(full_pitch_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
         else:
-            totals_display[display] = float("nan")
-
-    totals_row_df = pd.DataFrame([totals_display])
-    game_table_with_total = pd.concat([game_table, totals_row_df], ignore_index=True)
-
-    st.markdown(build_html_table(game_table_with_total, freeze_col=True, total_row=True),
-                unsafe_allow_html=True)
+            st.info("No pitch type data available for this pitcher.")
