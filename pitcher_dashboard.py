@@ -86,7 +86,7 @@ def load_data():
                 "https://www.googleapis.com/auth/drive"],
     )
     gc = gspread.authorize(creds)
-    ws = gc.open_by_key(SHEET_ID).sheet1
+    ws = gc.open_by_key(SHEET_ID).worksheet("test")
     df = pd.DataFrame(ws.get_all_records())
     df["game_date"] = pd.to_datetime(df["game_date"])
     return df
