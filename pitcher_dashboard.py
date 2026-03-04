@@ -3,7 +3,7 @@ import pandas as pd
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Pitcher Metrics",
+    page_title="ECHS Pitcher Metrics",
     page_icon="⚾",
     layout="wide",
 )
@@ -240,7 +240,7 @@ display_cols = {
     "efficient_pa%":      "Efficient PA%"
 }
 
-table = season[list(display_cols.keys())].rename(columns=display_cols)
+table = season[list(display_cols.keys())].rename(columns=display_cols).sort_values("0-0 Chances", ascending=False).reset_index(drop=True)
 
 def color_for(val, col_name):
     if pd.isna(val) or not isinstance(val, (int, float)):
