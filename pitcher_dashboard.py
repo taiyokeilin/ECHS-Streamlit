@@ -4,7 +4,6 @@ import gspread
 import plotly.graph_objects as go
 from google.oauth2.service_account import Credentials
 
-
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="ECHS Pitcher Metrics",
@@ -375,7 +374,7 @@ else:
     if "pitcher_view" not in st.session_state:
         st.session_state.pitcher_view = "by_game"
 
-    col_btn1, col_btn2, col_btn3, _ = st.columns([1.2, 1.2, 1, 7])
+    col_btn1, col_btn2, col_btn3, _ = st.columns([1, 1.5, 1, 6.5])
     with col_btn1:
         if st.button("By Game", type="primary" if st.session_state.pitcher_view == "by_game" else "secondary"):
             st.session_state.pitcher_view = "by_game"
@@ -498,7 +497,7 @@ else:
         selected_metrics = st.multiselect(
             "Select metrics to display",
             options=list(chart_metrics.keys()),
-            default=["0-0 Win%", "All Lev. Win%", "2K CSW%"],
+            default=list(chart_metrics.keys()),
         )
 
         if not selected_metrics:
