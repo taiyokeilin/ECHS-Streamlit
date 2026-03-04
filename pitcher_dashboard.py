@@ -138,8 +138,9 @@ def add_rates(d):
     d["all_lev_win%"]  = (d["all_lev_winners"]   / d["all_lev_chances"].where(d["all_lev_chances"] > 0) * 100).round(1)
     d["2k_cs%"]        = (d["two_strike_cs"]      / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
     d["2k_whiff%"]     = (d["two_strike_whiffs"]  / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
-    d["2k_finish%"]    = ((d["two_strike_cs"] + d["two_strike_whiffs"]) / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
+    d["2k_csw%"]    = ((d["two_strike_cs"] + d["two_strike_whiffs"]) / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
     d["k_per_pa"]      = (d["strikeouts"] / d["total_pa"].where(d["total_pa"] > 0) * 100).round(1)
+    d["efficient_pa%"] = ((d["early_count_weak_contact"] + d["strikeouts"]) / d["total_pa"] * 100).round(1)
     d["weak_contact%"] = (d["early_count_weak_contact"] / d["total_pa"].where(d["total_pa"] > 0) * 100).round(1)
     return d
 
@@ -194,14 +195,16 @@ if not season.empty:
     t_fin  = round((totals["two_strike_cs"] + totals["two_strike_whiffs"])
                    / totals["two_strike_chances"] * 100, 1) if totals["two_strike_chances"] else 0
     t_k    = round(totals["strikeouts"] / totals["total_pa"] * 100, 1) if totals["total_pa"] else 0
+    t_eff = round((totals["early_count_weak_contact"] + totals["strikeouts"]) / totals["total_pa"] * 100, 1) if totals["total_pa"] else 0
 
     c1, c2, c3, c4, c5 = st.columns(5)
     for col, label, val, cls in [
         (c1, "0-0 Win%",       f"{t_oh}%",  "good" if t_oh  >= 55 else "neutral"),
         (c2, "1-1 Win%",       f"{t_11}%",  "good" if t_11  >= 50 else "neutral"),
-        (c3, "All-Lev Win%",   f"{t_lev}%", "good" if t_lev >= 50 else "neutral"),
-        (c4, "2-Strike Finish%",f"{t_fin}%","good" if t_fin >= 30 else "neutral"),
+        (c3, "All Leverage Win%",   f"{t_lev}%", "good" if t_lev >= 50 else "neutral"),
+        (c4, "2-Strike CSW%",f"{t_fin}%","good" if t_fin >= 30 else "neutral"),
         (c5, "K%",             f"{t_k}%",   "good" if t_k   >= 20 else "neutral"),
+        (c6, "Efficient PA%", f"{t_eff}%", "good" if t_eff >= 70 else "neutral")
     ]:
         col.markdown(f"""
         <div class='metric-card'>
@@ -216,25 +219,29 @@ st.markdown("<div class='section-header'>Per-Pitcher Breakdown</div>", unsafe_al
 
 display_cols = {
     "pitcher":         "Pitcher",
-    "total_pa":        "Total PA",
-    "oh_oh_chances":   "0-0 Ch",
+    # "total_pa":        "Total PA",
+    "oh_oh_chances":   "0-0 Chances",
+    "oh_oh_winners":   "0-0 Winners",
     "oh_oh_win%":      "0-0 Win%",
-    "one_one_chances": "1-1 Ch",
+    "one_one_chances": "1-1 Chances",
+    "one_one_chances":  "1-1 Winners",
     "one_one_win%":    "1-1 Win%",
-    "all_lev_chances": "All-Lev Ch",
-    "all_lev_win%":    "All-Lev Win%",
+    "all_lev_chances": "All Leverage Chances",
+    "all_lev_winners": "All Leverage Winners",
+    "all_lev_win%":    "All Leverage Win%",
     "strikeouts":      "K",
     "k_per_pa":        "K%",
-    "two_strike_chances": "2K Ch",
-    "2k_finish%":      "2K Finish%",
+    "two_strike_chances": "2K Chances",
+    "2k_csw%":      "2K CSW%",
     "2k_cs%":          "2K CS%",
     "2k_whiff%":       "2K Whiff%",
-    "weak_contact%":   "Weak Cont%",
+    "efficient_pa%":    "Efficient PA%",
+    "weak_contact%":   "Weak Contact%",
 }
 
 table = season[list(display_cols.keys())].rename(columns=display_cols)
 
-# Colour map helpers
+# Color map helpers
 def highlight_pct(val):
     if pd.isna(val):
         return ""
@@ -249,12 +256,12 @@ styled = (
         "1-1 Win%":      "{:.1f}",
         "All-Lev Win%":  "{:.1f}",
         "K%":            "{:.1f}",
-        "2K Finish%":    "{:.1f}",
+        "2K CSW%":    "{:.1f}",
         "2K CS%":        "{:.1f}",
         "2K Whiff%":     "{:.1f}",
         "Weak Cont%":    "{:.1f}",
     }, na_rep="—")
-    .applymap(highlight_pct, subset=["0-0 Win%","1-1 Win%","All-Lev Win%","2K Finish%"])
+    .applymap(highlight_pct, subset=["0-0 Win%","1-1 Win%","All-Lev Win%","2K CSW%"])
     .set_properties(**{"background-color": "#161b22", "border-color": "#30363d"})
     .set_table_styles([
         {"selector": "th", "props": [("background-color","#0d1117"),
