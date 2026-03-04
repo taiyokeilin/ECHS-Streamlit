@@ -218,25 +218,26 @@ if not season.empty:
 st.markdown("<div class='section-header'>Per-Pitcher Breakdown</div>", unsafe_allow_html=True)
 
 display_cols = {
-    "pitcher":         "Pitcher",
-    # "total_pa":        "Total PA",
-    "oh_oh_chances":   "0-0 Chances",
-    "oh_oh_winners":   "0-0 Winners",
-    "oh_oh_win%":      "0-0 Win%",
-    "one_one_chances": "1-1 Chances",
-    "one_one_chances":  "1-1 Winners",
-    "one_one_win%":    "1-1 Win%",
-    "all_lev_chances": "All Leverage Chances",
-    "all_lev_winners": "All Leverage Winners",
-    "all_lev_win%":    "All Leverage Win%",
-    "strikeouts":      "K",
-    "k_per_pa":        "K%",
+    "pitcher":            "Pitcher",
+    "oh_oh_chances":      "0-0 Chances",
+    "oh_oh_winners":      "0-0 Winners",
+    "oh_oh_win%":         "0-0 Win%",
+    "one_one_chances":    "1-1 Chances",
+    "one_one_winners":    "1-1 Winners",
+    "one_one_win%":       "1-1 Win%",
+    "all_lev_chances":    "All Lev. Chances",
+    "all_lev_winners":    "All Lev. Winners",
+    "all_lev_win%":       "All Lev. Win%",
     "two_strike_chances": "2K Chances",
-    "2k_csw%":      "2K CSW%",
-    "2k_cs%":          "2K CS%",
-    "2k_whiff%":       "2K Whiff%",
-    "efficient_pa%":    "Efficient PA%",
-    "weak_contact%":   "Weak Contact%",
+    "two_strike_cs":      "2K CS",
+    "two_strike_whiffs":  "2K Whiffs",
+    "2k_csw%":            "2K CSW%",
+    # "2k_cs%":             "2K CS%",
+    # "2k_whiff%":          "2K Whiff%",
+    "strikeouts":         "K",
+    "k_per_pa":           "K%",
+    "weak_contact%":      "Weak Contact%",
+    "efficient_pa%":      "Efficient PA%"
 }
 
 table = season[list(display_cols.keys())].rename(columns=display_cols)
@@ -263,7 +264,7 @@ def fmt(val, col_name):
     if pd.isna(val):
         return "—"
     int_cols = ["K", "0-0 Chances", "0-0 Winners", "1-1 Chances", "1-1 Winners",
-                "All Leverage Chances", "All Leverage Winners", "2K Chances"]
+                "All Lev. Chances", "All Lev. Winners", "2K Chances"]
     if col_name in int_cols:
         return str(int(val))
     if isinstance(val, float):
