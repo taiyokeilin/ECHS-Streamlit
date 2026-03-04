@@ -243,7 +243,11 @@ display_cols = {
 table = season[list(display_cols.keys())].rename(columns=display_cols).sort_values("0-0 Chances", ascending=False).reset_index(drop=True)
 
 def color_for(val, col_name):
-    if pd.isna(val) or not isinstance(val, (int, float)):
+    try:
+        val = float(val)
+    except (TypeError, ValueError):
+        return ""
+    if pd.isna(val):
         return ""
     thresholds = {
         "0-0 Win%":          (65, 50),
