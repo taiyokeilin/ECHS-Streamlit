@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -13,17 +15,10 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Barlow Condensed', sans-serif;
-}
-.stApp {
-    background-color: #0d1117;
-    color: #e6edf3;
-}
-h1, h2, h3 {
-    font-family: 'Barlow Condensed', sans-serif;
-    letter-spacing: 0.05em;
-}
+html, body, [class*="css"] { font-family: 'Barlow Condensed', sans-serif; }
+.stApp { background-color: #0d1117; color: #e6edf3; }
+h1, h2, h3 { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.05em; }
+
 .metric-card {
     background: #161b22;
     border: 1px solid #30363d;
@@ -32,7 +27,7 @@ h1, h2, h3 {
     text-align: center;
 }
 .metric-label {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: #8b949e;
@@ -44,10 +39,10 @@ h1, h2, h3 {
     font-weight: 500;
     color: #58a6ff;
 }
-.metric-value.good { color: #3fb950; }
+.metric-value.good    { color: #3fb950; }
 .metric-value.neutral { color: #d29922; }
-.metric-value.bad { color: #f85149; }
-.stDataFrame { font-family: 'DM Mono', monospace; font-size: 0.85rem; }
+.metric-value.bad     { color: #f85149; }
+
 div[data-testid="stSelectbox"] label,
 div[data-testid="stMultiSelect"] label {
     font-family: 'Barlow Condensed', sans-serif;
@@ -69,32 +64,6 @@ div[data-testid="stMultiSelect"] label {
 """, unsafe_allow_html=True)
 
 # ── Data loading ──────────────────────────────────────────────────────────────
-# ─────────────────────────────────────────────────────────────────────────────
-# TO CONNECT TO GOOGLE SHEETS:
-# 1. Share your sheet with a service account email (see README)
-# 2. Uncomment the block below and fill in your SHEET_ID
-# 3. Add credentials to .streamlit/secrets.toml
-# ─────────────────────────────────────────────────────────────────────────────
-import gspread
-from google.oauth2.service_account import Credentials
-
-# @st.cache_data(ttl=300)
-# def load_data():
-#     SHEET_ID = "1lqt0Wnl86S8PYsq7a-PwUD7uYx1Y9RrXhojZjjY1Ua8"
-#     creds = Credentials.from_service_account_info(
-#         st.secrets["gcp_service_account"],
-#         scopes=["https://spreadsheets.google.com/feeds",
-#                 "https://www.googleapis.com/auth/drive"],
-#     )
-#     gc = gspread.authorize(creds)
-#     ws = gc.open_by_key(SHEET_ID).worksheet("By Game")
-#     df = pd.DataFrame(ws.get_all_records())
-#     df["game_date"] = pd.to_datetime(df["game_date"])
-#     num_cols = [c for c in df.columns if c not in ("pitcher", "pitch_type", "game_date", "opponent")]
-#     df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
-#     return df
-
-
 @st.cache_data(ttl=300)
 def load_data():
     SHEET_ID = "1lqt0Wnl86S8PYsq7a-PwUD7uYx1Y9RrXhojZjjY1Ua8"
@@ -113,110 +82,32 @@ def load_data():
     df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
     return df
 
-# @st.cache_data
-# def load_data():
-#     """Local CSV fallback — replace with Google Sheets loader above when ready."""
-#     df = pd.read_csv("lev_test.csv")
-#     df["game_date"] = pd.to_datetime(df["game_date"])
-#     # Coerce numeric columns
-#     num_cols = [c for c in df.columns if c not in ("pitcher", "pitch_type", "game_date", "opponent")]
-#     df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
-#     return df
-
 df = load_data()
 
 # ── Derived columns ───────────────────────────────────────────────────────────
 def add_rates(d):
     d = d.copy()
-    # Force all columns except identifiers to numeric
     non_numeric = ["pitcher", "pitch_type", "game_date", "opponent"]
     for col in d.columns:
         if col not in non_numeric:
             d[col] = pd.to_numeric(d[col], errors="coerce")
-    
-    d["oh_oh_win%"]    = (d["oh_oh_winners"]    / d["oh_oh_chances"].where(d["oh_oh_chances"] > 0) * 100).round(1)
-    d["one_one_win%"]  = (d["one_one_winners"]   / d["one_one_chances"].where(d["one_one_chances"] > 0) * 100).round(1)
-    d["all_lev_win%"]  = (d["all_lev_winners"]   / d["all_lev_chances"].where(d["all_lev_chances"] > 0) * 100).round(1)
-    d["2k_cs%"]        = (d["two_strike_cs"]      / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
-    d["2k_whiff%"]     = (d["two_strike_whiffs"]  / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
-    d["2k_csw%"]    = ((d["two_strike_cs"] + d["two_strike_whiffs"]) / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
+    d["oh_oh_win%"]    = (d["oh_oh_winners"]   / d["oh_oh_chances"].where(d["oh_oh_chances"] > 0) * 100).round(1)
+    d["one_one_win%"]  = (d["one_one_winners"]  / d["one_one_chances"].where(d["one_one_chances"] > 0) * 100).round(1)
+    d["all_lev_win%"]  = (d["all_lev_winners"]  / d["all_lev_chances"].where(d["all_lev_chances"] > 0) * 100).round(1)
+    d["2k_cs%"]        = (d["two_strike_cs"]     / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
+    d["2k_whiff%"]     = (d["two_strike_whiffs"] / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
+    d["2k_csw%"]       = ((d["two_strike_cs"] + d["two_strike_whiffs"]) / d["two_strike_chances"].where(d["two_strike_chances"] > 0) * 100).round(1)
     d["k_per_pa"]      = (d["strikeouts"] / d["total_pa"].where(d["total_pa"] > 0) * 100).round(1)
-    d["efficient_pa%"] = ((d["early_count_weak_contact"] + d["strikeouts"]) / d["total_pa"] * 100).round(1)
+    d["efficient_pa%"] = ((d["early_count_weak_contact"] + d["strikeouts"]) / d["total_pa"].where(d["total_pa"] > 0) * 100).round(1)
     d["weak_contact%"] = (d["early_count_weak_contact"] / d["total_pa"].where(d["total_pa"] > 0) * 100).round(1)
     return d
 
 df = add_rates(df)
 
-# ── Sidebar filters ───────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("## ⚾ Filters")
-
-    all_pitchers = sorted(df["pitcher"].unique())
-    sel_pitchers = st.selectbox("Pitcher", ["All Pitchers"] + all_pitchers)
-
-    pitch_type_order = ["All", "FF", "CB", "SL", "CH"]
-    all_types = [p for p in pitch_type_order if p in df["pitch_type"].values]
-    sel_type = st.selectbox("Pitch Type", all_types)
-
-    all_opps = ["All Opponents"] + sorted(df["opponent"].unique())
-    sel_opp = st.selectbox("Opponent", all_opps)
-
-    st.markdown("---")
-    st.caption("Data refreshes every 5 min when connected to Google Sheets.")
-
-# ── Filter data ───────────────────────────────────────────────────────────────
-filtered = df[df["pitch_type"] == sel_type]
-if sel_pitchers != "All Pitchers":
-    filtered = filtered[filtered["pitcher"] == sel_pitchers]
-if sel_opp != "All Opponents":
-    filtered = filtered[filtered["opponent"] == sel_opp]
-
-# ── Season totals ─────────────────────────────────────────────────────────────
-sum_cols  = ["oh_oh_chances","oh_oh_winners","one_one_chances","one_one_winners",
-             "all_lev_chances","all_lev_winners","total_pa","early_count_weak_contact",
-             "strikeouts","two_strike_chances","two_strike_cs","two_strike_whiffs"]
-season = (
-    filtered.groupby("pitcher")[sum_cols]
-    .sum()
-    .reset_index()
-)
-season = add_rates(season)
-
-# ── Header ────────────────────────────────────────────────────────────────────
-st.markdown("# ⚾ ECHS Pitcher Metrics Dashboard")
-st.markdown(f"<div class='section-header'>Season Totals · Pitch Type: {sel_type} · {len(season)} pitchers</div>",
-            unsafe_allow_html=True)
-
-# ── Fleet-level summary cards ─────────────────────────────────────────────────
-if not season.empty:
-    totals = season[sum_cols].sum()
-    t_oh   = round(totals["oh_oh_winners"]   / totals["oh_oh_chances"]   * 100, 1) if totals["oh_oh_chances"]   else 0
-    t_11   = round(totals["one_one_winners"]  / totals["one_one_chances"] * 100, 1) if totals["one_one_chances"] else 0
-    t_lev  = round(totals["all_lev_winners"]  / totals["all_lev_chances"] * 100, 1) if totals["all_lev_chances"] else 0
-    t_fin  = round((totals["two_strike_cs"] + totals["two_strike_whiffs"])
-                   / totals["two_strike_chances"] * 100, 1) if totals["two_strike_chances"] else 0
-    t_k    = round(totals["strikeouts"] / totals["total_pa"] * 100, 1) if totals["total_pa"] else 0
-    t_eff = round((totals["early_count_weak_contact"] + totals["strikeouts"]) / totals["total_pa"] * 100, 1) if totals["total_pa"] else 0
-
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    for col, label, val, cls in [
-        (c1, "0-0 Win%",      f"{t_oh}%",  "good" if t_oh  >= 65 else ("neutral" if t_oh  >= 50 else "bad")),
-        (c2, "1-1 Win%",      f"{t_11}%",  "good" if t_11  >= 65 else ("neutral" if t_11  >= 50 else "bad")),
-        (c3, "All Lev. Win%", f"{t_lev}%", "good" if t_lev >= 65 else ("neutral" if t_lev >= 50 else "bad")),
-        (c4, "2-Strike CSW%", f"{t_fin}%", "good" if t_fin >= 35 else ("neutral" if t_fin >= 25 else "bad")),
-        (c5, "K%",            f"{t_k}%",   "good" if t_k   >= 25 else ("neutral" if t_k   >= 20 else "bad")),
-        (c6, "Efficient PA%", f"{t_eff}%", "good" if t_eff >= 60 else ("neutral" if t_eff >= 50 else "bad")),
-    ]:
-        col.markdown(f"""
-        <div class='metric-card'>
-            <div class='metric-label'>{label}</div>
-            <div class='metric-value {cls}'>{val}</div>
-        </div>""", unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-# ── Per-pitcher season table ──────────────────────────────────────────────────
-st.markdown("<div class='section-header'>Per-Pitcher Breakdown</div>", unsafe_allow_html=True)
+# ── Shared constants ──────────────────────────────────────────────────────────
+sum_cols = ["oh_oh_chances","oh_oh_winners","one_one_chances","one_one_winners",
+            "all_lev_chances","all_lev_winners","total_pa","early_count_weak_contact",
+            "strikeouts","two_strike_chances","two_strike_cs","two_strike_whiffs"]
 
 display_cols = {
     "pitcher":            "Pitcher",
@@ -233,16 +124,47 @@ display_cols = {
     "two_strike_cs":      "2K CS",
     "two_strike_whiffs":  "2K Whiffs",
     "2k_csw%":            "2K CSW%",
-    # "2k_cs%":             "2K CS%",
-    # "2k_whiff%":          "2K Whiff%",
     "strikeouts":         "K",
     "k_per_pa":           "K%",
     "weak_contact%":      "Weak Contact%",
-    "efficient_pa%":      "Efficient PA%"
+    "efficient_pa%":      "Efficient PA%",
 }
 
-table = season[list(display_cols.keys())].rename(columns=display_cols).sort_values("0-0 Chances", ascending=False).reset_index(drop=True)
+game_display_cols = {
+    "game_date":          "Date",
+    "opponent":           "Opponent",
+    "oh_oh_chances":      "0-0 Chances",
+    "oh_oh_winners":      "0-0 Winners",
+    "oh_oh_win%":         "0-0 Win%",
+    "one_one_chances":    "1-1 Chances",
+    "one_one_winners":    "1-1 Winners",
+    "one_one_win%":       "1-1 Win%",
+    "all_lev_chances":    "All Lev. Chances",
+    "all_lev_winners":    "All Lev. Winners",
+    "all_lev_win%":       "All Lev. Win%",
+    "two_strike_chances": "2K Chances",
+    "two_strike_cs":      "2K CS",
+    "two_strike_whiffs":  "2K Whiffs",
+    "2k_csw%":            "2K CSW%",
+    "strikeouts":         "K",
+    "k_per_pa":           "K%",
+    "weak_contact%":      "Weak Contact%",
+    "efficient_pa%":      "Efficient PA%",
+}
 
+thresholds = {
+    "0-0 Win%":      (65, 50),
+    "1-1 Win%":      (65, 50),
+    "All Lev. Win%": (65, 50),
+    "2K CSW%":       (35, 25),
+    "K%":            (25, 20),
+    "Efficient PA%": (60, 50),
+}
+
+int_cols = ["K", "0-0 Chances", "0-0 Winners", "1-1 Chances", "1-1 Winners",
+            "All Lev. Chances", "All Lev. Winners", "2K Chances", "2K CS", "2K Whiffs"]
+
+# ── Shared helpers ────────────────────────────────────────────────────────────
 def color_for(val, col_name):
     try:
         val = float(val)
@@ -250,49 +172,55 @@ def color_for(val, col_name):
         return ""
     if pd.isna(val):
         return ""
-    thresholds = {
-        "0-0 Win%":          (65, 50),
-        "1-1 Win%":          (65, 50),
-        "All Lev. Win%": (65, 50),
-        "2K CSW%":           (35, 25),
-        "K%":                (25, 20),
-        "Efficient PA%":     (60, 50),
-    }
     if col_name not in thresholds:
         return ""
     green, yellow = thresholds[col_name]
-    if val >= green:   return "#3fb950"
+    if val >= green:    return "#3fb950"
     elif val >= yellow: return "#d29922"
-    else:              return "#f85149"
+    else:               return "#f85149"
 
 def fmt(val, col_name):
     if pd.isna(val):
         return "—"
-    int_cols = ["K", "0-0 Chances", "0-0 Winners", "1-1 Chances", "1-1 Winners",
-                "All Lev. Chances", "All Lev. Winners", "2K Chances", "2K CS", "2K Whiffs"]
+    if col_name == "Date":
+        try:
+            return pd.Timestamp(val).strftime("%m/%d/%y")
+        except:
+            return str(val)
     if col_name in int_cols:
-        return str(int(val))
+        try:
+            return str(int(val))
+        except:
+            return str(val)
     if isinstance(val, float):
         return f"{val:.1f}"
     return str(val)
 
-def build_html_table(df):
+def build_html_table(df, freeze_col=True, total_row=False):
     cols = list(df.columns)
     header_cells = ""
     for i, c in enumerate(cols):
-        sticky = 'style="position:sticky;left:0;z-index:2;background:#0d1117;"' if i == 0 else ""
+        sticky = 'style="position:sticky;left:0;z-index:2;background:#0d1117;white-space:nowrap;padding:0.4rem 0.75rem;"' if (i == 0 and freeze_col) else 'style="white-space:nowrap;padding:0.4rem 0.75rem;"'
         header_cells += f'<th {sticky}>{c}</th>'
 
-    rows = ""
-    for _, row in df.iterrows():
+    def make_row(row, is_total=False):
         cells = ""
+        bg = "#1f2937" if is_total else "#161b22"
+        border = "2px solid #58a6ff" if is_total else "1px solid #30363d"
         for i, c in enumerate(cols):
             val = row[c]
             color = color_for(val, c)
             color_style = f"color:{color};" if color else "color:#e6edf3;"
-            sticky = "position:sticky;left:0;z-index:1;background:#161b22;" if i == 0 else ""
-            cells += f'<td style="{sticky}{color_style}">{fmt(val, c)}</td>'
-        rows += f"<tr>{cells}</tr>"
+            if is_total:
+                color_style += "font-weight:600;"
+            sticky = f"position:sticky;left:0;z-index:1;background:{bg};" if (i == 0 and freeze_col) else f"background:{bg};"
+            cells += f'<td style="{sticky}{color_style}padding:0.4rem 0.75rem;">{fmt(val, c)}</td>'
+        return f'<tr style="border-top:{border};">{cells}</tr>'
+
+    rows = ""
+    for idx, (_, row) in enumerate(df.iterrows()):
+        is_last = total_row and idx == len(df) - 1
+        rows += make_row(row, is_total=is_last)
 
     return f"""
     <div style="overflow-x:auto; border-radius:8px; border:1px solid #30363d;">
@@ -303,20 +231,123 @@ def build_html_table(df):
                 {header_cells}
             </tr>
         </thead>
-        <tbody>
-            {rows}
-        </tbody>
+        <tbody>{rows}</tbody>
     </table>
     </div>
     """
 
-st.markdown(build_html_table(table), unsafe_allow_html=True)
+def summary_cards(totals_row):
+    t_oh  = round(totals_row["oh_oh_winners"]  / totals_row["oh_oh_chances"]   * 100, 1) if totals_row["oh_oh_chances"]   else 0
+    t_11  = round(totals_row["one_one_winners"] / totals_row["one_one_chances"] * 100, 1) if totals_row["one_one_chances"] else 0
+    t_lev = round(totals_row["all_lev_winners"] / totals_row["all_lev_chances"] * 100, 1) if totals_row["all_lev_chances"] else 0
+    t_fin = round((totals_row["two_strike_cs"] + totals_row["two_strike_whiffs"]) / totals_row["two_strike_chances"] * 100, 1) if totals_row["two_strike_chances"] else 0
+    t_k   = round(totals_row["strikeouts"] / totals_row["total_pa"] * 100, 1) if totals_row["total_pa"] else 0
+    t_eff = round((totals_row["early_count_weak_contact"] + totals_row["strikeouts"]) / totals_row["total_pa"] * 100, 1) if totals_row["total_pa"] else 0
 
-# ── Raw game log ──────────────────────────────────────────────────────────────
-with st.expander("📋 Raw Game Log"):
-    st.dataframe(
-        filtered.sort_values("game_date", ascending=False)
-                .reset_index(drop=True),
-        use_container_width=True,
-        hide_index=True,
-    )
+    scols = st.columns(6)
+    for col, label, val, thres in [
+        (scols[0], "0-0 Win%",      f"{t_oh}%",  (65, 50)),
+        (scols[1], "1-1 Win%",      f"{t_11}%",  (65, 50)),
+        (scols[2], "All Lev. Win%", f"{t_lev}%", (65, 50)),
+        (scols[3], "2K CSW%",       f"{t_fin}%", (35, 25)),
+        (scols[4], "K%",            f"{t_k}%",   (25, 20)),
+        (scols[5], "Efficient PA%", f"{t_eff}%", (60, 50)),
+    ]:
+        v = float(val.replace("%", ""))
+        cls = "good" if v >= thres[0] else ("neutral" if v >= thres[1] else "bad")
+        col.markdown(f"""
+        <div class='metric-card'>
+            <div class='metric-label'>{label}</div>
+            <div class='metric-value {cls}'>{val}</div>
+        </div>""", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+# ── Session state for navigation ──────────────────────────────────────────────
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+if "selected_pitcher" not in st.session_state:
+    st.session_state.selected_pitcher = None
+
+# ── Filter to "All" pitch type only ──────────────────────────────────────────
+df_all = df[df["pitch_type"] == "All"].copy()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: HOME — Season totals
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "home":
+
+    season = df_all.groupby("pitcher")[sum_cols].sum().reset_index()
+    season = add_rates(season)
+
+    st.markdown("# ⚾ ECHS Pitcher Metrics")
+    st.markdown(f"<div class='section-header'>Season Totals · {len(season)} Pitchers</div>",
+                unsafe_allow_html=True)
+
+    totals = season[sum_cols].sum()
+    summary_cards(totals)
+
+    st.markdown("<div class='section-header'>Per-Pitcher Breakdown — select a name below to view game log</div>",
+                unsafe_allow_html=True)
+
+    table = (season[list(display_cols.keys())]
+             .rename(columns=display_cols)
+             .sort_values("0-0 Chances", ascending=False)
+             .reset_index(drop=True))
+
+    st.markdown(build_html_table(table, freeze_col=True), unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    pitcher_list = table["Pitcher"].tolist()
+    selected = st.selectbox("Select Pitcher", ["— select —"] + pitcher_list, label_visibility="collapsed")
+    if selected != "— select —":
+        st.session_state.selected_pitcher = selected
+        st.session_state.page = "pitcher"
+        st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE: PITCHER — Game-by-game log
+# ══════════════════════════════════════════════════════════════════════════════
+elif st.session_state.page == "pitcher":
+    pitcher = st.session_state.selected_pitcher
+
+    if st.button("← Back to Season Overview"):
+        st.session_state.page = "home"
+        st.session_state.selected_pitcher = None
+        st.rerun()
+
+    st.markdown(f"# ⚾ {pitcher}")
+    st.markdown("<div class='section-header'>Game Log — All Pitches</div>", unsafe_allow_html=True)
+
+    pitcher_df = df_all[df_all["pitcher"] == pitcher].sort_values("game_date").reset_index(drop=True)
+    pitcher_df = add_rates(pitcher_df)
+
+    # Summary cards for this pitcher
+    totals = pitcher_df[sum_cols].sum()
+    summary_cards(totals)
+
+    # Game-by-game table
+    game_table = pitcher_df[list(game_display_cols.keys())].rename(columns=game_display_cols).copy()
+
+    # Build season totals row
+    totals_rates = add_rates(pd.DataFrame([pitcher_df[sum_cols].sum()]))[
+        ["oh_oh_win%","one_one_win%","all_lev_win%","2k_csw%","k_per_pa","efficient_pa%","weak_contact%"]
+    ].iloc[0]
+
+    totals_display = {}
+    for raw, display in game_display_cols.items():
+        if display == "Date":
+            totals_display[display] = "SEASON"
+        elif display == "Opponent":
+            totals_display[display] = ""
+        elif raw in sum_cols:
+            totals_display[display] = pitcher_df[sum_cols].sum()[raw]
+        elif raw in totals_rates.index:
+            totals_display[display] = totals_rates[raw]
+        else:
+            totals_display[display] = float("nan")
+
+    totals_row_df = pd.DataFrame([totals_display])
+    game_table_with_total = pd.concat([game_table, totals_row_df], ignore_index=True)
+
+    st.markdown(build_html_table(game_table_with_total, freeze_col=True, total_row=True),
+                unsafe_allow_html=True)
