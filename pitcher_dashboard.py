@@ -101,7 +101,7 @@ def load_data():
 #     df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
 #     return df
 
-# df = load_data()
+df = load_data()
 
 # ── Derived columns ───────────────────────────────────────────────────────────
 def add_rates(d):
@@ -115,6 +115,7 @@ def add_rates(d):
                           / d["two_strike_chances"].replace(0, pd.NA) * 100).round(1)
     d["k_per_pa"]      = (d["strikeouts"] / d["total_pa"].replace(0, pd.NA) * 100).round(1)
     d["weak_contact%"] = (d["early_count_weak_contact"] / d["total_pa"].replace(0, pd.NA) * 100).round(1)
+    d["efficient_pa%"] = ((d["early_count_weak_contact"] + d["strikeouts"]) / d["total_pa"].replace(0, pd.NA) * 100).round(1)
     return d
 
 df = add_rates(df)
