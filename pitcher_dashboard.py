@@ -340,7 +340,13 @@ if current_pitcher is None:
     st.markdown(build_html_table_with_links(table), unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     st.caption("Click a pitcher's name to view his personal page.")
-    st.caption("Color legend:\n🟢 Green indicates above threshold in given metric (65%+ for leverage counts, 60%+ for efficient PAs, 35%+ for 2K CSW%, 25%+ for K%)\n🟡 Yellow indicates nearing threshold (50%-65% for leverage counts, 50%-60% for efficient PAs, 25%-35% for 2K CSW%, 20%-25% for K%)\n🔴 Red indicates well below threshold (<50% for leverage counts and efficient PAs, <25% for 2K CSW%, <25% for K%)")
+    st.markdown("""
+<div style="font-size:0.75rem; color:#8b949e; margin-top:0.5rem;">
+🟢 Green indicates above threshold in given metric (65%+ for leverage counts, 60%+ for efficient PAs, 35%+ for 2K CSW%, 25%+ for K%)<br>
+🟡 Yellow indicates nearing threshold (50%-65% for leverage counts, 50%-60% for efficient PAs, 25%-35% for 2K CSW%, 20%-25% for K%)<br>
+🔴 Red indicates well below threshold (&lt;50% for leverage counts and efficient PAs, &lt;25% for 2K CSW%, &lt;20% for K%)
+</div>
+""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: PITCHER — Game-by-game log
