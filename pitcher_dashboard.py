@@ -266,6 +266,13 @@ def summary_cards(totals_row):
 # ── Filter to "All" pitch type only ──────────────────────────────────────────
 df_all = df[df["pitch_type"] == "All"].copy()
 all_pitchers = sorted(df_all["pitcher"].unique().tolist())
+color_legend = """
+<div style="font-size:0.75rem; color:#8b949e; margin-top:0.5rem;">
+🟢 Green indicates above threshold in given metric (65%+ for leverage counts, 60%+ for efficient PAs, 35%+ for 2K CSW%, 25%+ for K%)<br>
+🟡 Yellow indicates nearing threshold (50%-65% for leverage counts, 50%-60% for efficient PAs, 25%-35% for 2K CSW%, 20%-25% for K%)<br>
+🔴 Red indicates well below threshold (&lt;50% for leverage counts and efficient PAs, &lt;25% for 2K CSW%, &lt;20% for K%)
+</div>
+"""
 
 # ── Routing via query params ──────────────────────────────────────────────────
 params = st.query_params
@@ -291,7 +298,7 @@ if current_pitcher is None:
     totals = season[sum_cols].sum()
     summary_cards(totals)
 
-    st.markdown("<div class='section-header'>Per-Pitcher Breakdown</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>Pitcher Breakdown</div>", unsafe_allow_html=True)
 
     table = (season[list(display_cols.keys())]
              .rename(columns=display_cols)
@@ -515,6 +522,7 @@ else:
         totals_row["Opponent"] = ""
         full_table = pd.concat([game_table, totals_row], ignore_index=True)
         st.markdown(build_html_table(full_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
+        st.markdown(color_legend, unsafe_allow_html=True)
 
     # ── BY PITCH TYPE ─────────────────────────────────────────────────────────
     elif view == "by_pitch_type":
@@ -547,6 +555,7 @@ else:
             totals_row = build_totals_row(all_df, "Pitch", "SEASON", pitch_display_cols)
             full_pitch_table = pd.concat([pitch_table, totals_row], ignore_index=True)
             st.markdown(build_html_table(full_pitch_table, freeze_col=True, total_row=True), unsafe_allow_html=True)
+            st.markdown(color_legend, unsafe_allow_html=True)
         else:
             st.info("No pitch type data available for this pitcher.")
 
