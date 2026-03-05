@@ -285,7 +285,7 @@ if current_pitcher is None:
     with col_title:
         st.markdown("# ⚾ ECHS Pitcher Metrics")
         
-    st.markdown(f"<div class='section-header'>Season Totals · {len(season)} Pitchers · click a name to view game log</div>",
+    st.markdown(f"<div class='section-header'>Season Totals · {len(season)} Pitchers</div>",
                 unsafe_allow_html=True)
 
     totals = season[sum_cols].sum()
@@ -338,6 +338,9 @@ if current_pitcher is None:
         """
 
     st.markdown(build_html_table_with_links(table), unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.caption("Click a pitcher's name to view his personal page.")
+    st.caption("Color legend:\n🟢 Green indicates above threshold in given metric (65%+ for leverage counts, 60%+ for efficient PAs, 35%+ for 2K CSW%, 25%+ for K%)\n🟡 Yellow indicates nearing threshold (50%-65% for leverage counts, 50%-60% for efficient PAs, 25%-35% for 2K CSW%, 20%-25% for K%)\n🔴 Red indicates well below threshold (<50% for leverage counts and efficient PAs, <25% for 2K CSW%, <25% for K%)")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: PITCHER — Game-by-game log
