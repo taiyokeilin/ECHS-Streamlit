@@ -581,18 +581,22 @@ else:
                 else:
                     num_vals = graph_df[num_col].astype(int)
                 den_vals = graph_df[den_col].astype(int)
+                pct_vals = graph_df[raw_col]
 
-                custom_data = list(zip(num_vals, den_vals))
+                hover_text = [
+                    f"<b>{metric}</b><br>{x}<br>{n}/{d} ({p:.1f}%)"
+                    for x, n, d, p in zip(x_labels, num_vals, den_vals, pct_vals)
+                ]
 
                 fig.add_trace(go.Scatter(
                     x=x_labels,
-                    y=graph_df[raw_col],
+                    y=pct_vals,
                     mode="lines+markers",
                     name=metric,
                     line=dict(color=color, width=2),
                     marker=dict(color=color, size=7),
-                    customdata=custom_data,
-                    hovertemplate=f"<b>{metric}</b><br>%{{x}}<br>%{{customdata[0]}}/%{{customdata[1]}} (%{{y:.1f}}%)<extra></extra>",
+                    text=hover_text,
+                    hoverinfo="text",
                 ))
 
             fig.update_layout(
