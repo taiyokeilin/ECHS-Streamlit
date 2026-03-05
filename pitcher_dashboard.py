@@ -279,7 +279,12 @@ if current_pitcher is None:
     season = df_all.groupby("pitcher")[sum_cols].sum().reset_index()
     season = add_rates(season)
 
-    st.markdown("# ⚾ ECHS Pitcher Metrics")
+    col_logo, col_title = st.columns([1, 8])
+    with col_logo:
+        st.image("gaucho_logo.png", width=80)
+    with col_title:
+        st.markdown("# ⚾ ECHS Pitcher Metrics")
+        
     st.markdown(f"<div class='section-header'>Season Totals · {len(season)} Pitchers · click a name to view game log</div>",
                 unsafe_allow_html=True)
 
