@@ -572,11 +572,11 @@ else:
         }
 
         metric_colors = {
-            "0-0 Win%":      "#ffffff",
-            "1-1 Win%":      "#ffffff",
-            "All Lev. Win%": "#ffffff",
-            "2K CSW%":       "#ffffff",
-            "Efficient PA%": "#ffffff",
+            "0-0 Win%":      "#58a6ff",
+            "1-1 Win%":      "#3fb950",
+            "All Lev. Win%": "#d29922",
+            "2K CSW%":       "#f78166",
+            "Efficient PA%": "#bc8cff",
         }
 
         selected_metrics = st.multiselect(
